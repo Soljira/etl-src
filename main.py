@@ -11,10 +11,16 @@ def main():
     # Test database connection
     logger.info("Testing database connection...")
     if test_connection():
-        logger.info("Foundation phase setup is complete and successful.")
+        logger.info("Database connection OK. Starting API server...")
     else:
-        logger.warning("Foundation phase setup complete, but database connection failed.")
+        logger.warning("Database connection failed. API will start but queries will fail.")
         logger.warning("Please check your .env file and ensure PostgreSQL is running.")
+
+    # Start Flask API
+    from src.api import create_app
+    app = create_app()
+    logger.info("Starting Flask API on http://localhost:5000")
+    app.run(host="0.0.0.0", port=5000, debug=True)
 
 if __name__ == "__main__":
     main()
