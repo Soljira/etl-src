@@ -33,3 +33,12 @@ def test_connection():
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
         return False
+
+def init_db():
+    """Create all tables in the database if they don't exist."""
+    try:
+        import src.db.models  # Import models so they are registered
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database schema initialized successfully.")
+    except Exception as e:
+        logger.error(f"Failed to initialize database schema: {e}")
