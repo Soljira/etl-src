@@ -87,3 +87,15 @@ Once running, the API is available at `http://localhost:5000/api/v1/`.
 | `GET /datasets`     | List all unique datasets                                                        |
 | `GET /categories`   | List all categories                                                             |
 | `GET /observations` | Query data points. Supports `?category=...`, `?year=...`, `?page=1&per_page=50` |
+
+## Note
+
+Only 4 categories are included to prevent API overusage
+
+"2E": "Agriculture_Forestry_Fisheries"
+
+"3K": "Labor_and_Employment"
+
+"1A": "Population_and_Vital_Statistics"
+
+"2G": "Mining_Manufacturing_Construction"
