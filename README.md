@@ -42,6 +42,26 @@ curl http://localhost:5000/api/v1/health
 
 If you want to run the full extraction, transformation, validation, and loading process inside the docker container (this will download fresh data from the PSA API and load it into your local containerized database):
 
+Extraction
+
+```bash
+docker-compose exec api python scripts/run_psa_extraction.py
+```
+
+Transformation
+
+```bash
+docker-compose exec api python scripts/run_transformers.py
+```
+
+Validation
+
+```bash
+docker-compose exec api python scripts/run_validation.py
+```
+
+Loading
+
 ```bash
 docker-compose exec api python scripts/run_loader.py
 ```
