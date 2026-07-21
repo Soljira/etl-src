@@ -1,0 +1,2 @@
+[tools]
+"postgres-binary:postgres" = "16"
