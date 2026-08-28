@@ -10,39 +10,39 @@
 
 <!-- Control Action Cards Grid -->
 <div class="grid-4" style="margin-bottom: 2.5rem;">
-    <div class="glass-card">
+    <div class="card">
         <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--primary);">1. Extract Data</h3>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Download raw CSV statistics from PSA OpenSTAT API under rate-limit rules.</p>
         <button id="btn-extract" class="btn btn-secondary" style="width: 100%;" onclick="runAction('extract')">Run Extraction</button>
     </div>
 
-    <div class="glass-card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #a855f7;">2. Transform &amp; Validate</h3>
+    <div class="card">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #7e22ce;">2. Transform &amp; Validate</h3>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Melt wide tables, extract years/periods, validate quality score &amp; Z-scores.</p>
         <button id="btn-transform" class="btn btn-secondary" style="width: 100%;" onclick="runAction('transform')">Run Transformation</button>
     </div>
 
-    <div class="glass-card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #4ade80;">3. Load to Database</h3>
+    <div class="card">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #16a34a;">3. Load to Database</h3>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Bulk insert clean, standardized records into PostgreSQL warehouse.</p>
         <button id="btn-load" class="btn btn-secondary" style="width: 100%;" onclick="runAction('load')">Run Loader</button>
     </div>
 
-    <div class="glass-card" style="border-color: rgba(56,189,248,0.4); background: rgba(14,165,233,0.08);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #fff;">Full Pipeline Run</h3>
+    <div class="card" style="border-color: #bae6fd; background: #e0f2fe;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #0369a1;">Full Pipeline Run</h3>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Execute end-to-end Extract ➔ Transform ➔ Validate ➔ Load automatically.</p>
         <button id="btn-all" class="btn btn-primary" style="width: 100%;" onclick="runAction('all')">Execute Full Pipeline</button>
     </div>
 </div>
 
 <!-- Execution Log Output Panel -->
-<div class="glass-card">
+<div class="card">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
         <h2 style="font-size: 1.25rem; margin: 0;">Execution Console</h2>
         <div style="display: flex; align-items: center; gap: 0.75rem;">
             <span id="status-badge" style="display:none; font-size:0.75rem; padding:0.25rem 0.75rem; border-radius:999px; font-weight:600;"></span>
             <span id="spinner" style="display:none; align-items:center;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8"
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
                      stroke-width="2.5" stroke-linecap="round" style="animation:spin 1s linear infinite;">
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
@@ -56,7 +56,7 @@
     </div>
 
     <div id="console-output"
-         style="background:rgba(5,10,24,0.97); border:1px solid var(--card-border); border-radius:8px;
+         style="background:#f1f5f9; border:1px solid var(--card-border); border-radius:8px; color: #334155;
                 padding:1.25rem; font-family:'JetBrains Mono','Fira Code',monospace; font-size:0.82rem;
                 min-height:220px; max-height:540px; overflow-y:auto; line-height:1.75;">
         <span class="log-muted">— Console ready. Click any action above to begin. —</span>
@@ -65,12 +65,12 @@
 
 <style>
 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-.log-info    { color: #38bdf8; }
-.log-warning { color: #fbbf24; }
-.log-error   { color: #f87171; }
-.log-sep     { color: #818cf8; font-weight: 600; }
-.log-done    { color: #4ade80; font-weight: 700; }
-.log-muted   { color: #4b5563; }
+.log-info    { color: #0284c7; }
+.log-warning { color: #d97706; }
+.log-error   { color: #dc2626; }
+.log-sep     { color: #4338ca; font-weight: 600; }
+.log-done    { color: #16a34a; font-weight: 700; }
+.log-muted   { color: #64748b; }
 </style>
 
 <script>
@@ -157,9 +157,8 @@ function pollLogs(runId, since) {
             }
         })
         .catch(err => {
-            appendLine('ERROR', 'Network error: ' + err);
-            setRunning(false);
-            setStatus('Error ✗', '#f87171');
+            appendLine('WARNING', `Network error while polling (${err.message}). Retrying in 2s...`);
+            _pollTimer = setTimeout(() => pollLogs(runId, since), 2000);
         });
 }
 

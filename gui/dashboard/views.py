@@ -19,7 +19,7 @@ from datetime import datetime
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
@@ -172,39 +172,48 @@ def index(request):
 
 def observations(request):
     """Filterable Data Explorer with pagination."""
-    qs = Observation.objects.all()
-
     category = request.GET.get("category", "").strip()
     dataset_id = request.GET.get("dataset_id", "").strip()
     year = request.GET.get("year", "").strip()
     search = request.GET.get("search", "").strip()
 
-    if category:
-        qs = qs.filter(category=category)
-    if dataset_id:
-        qs = qs.filter(dataset_id=dataset_id)
-    if year.isdigit():
-        qs = qs.filter(year=int(year))
-    if search:
-        qs = qs.filter(
-            models.Q(entity_name__icontains=search)
-            | models.Q(variable_name__icontains=search)
-            | models.Q(dataset_id__icontains=search)
+    try:
+        qs = Observation.objects.all()
+
+        if category:
+            qs = qs.filter(category=category)
+        if dataset_id:
+            qs = qs.filter(dataset_id=dataset_id)
+        if year.isdigit():
+            qs = qs.filter(year=int(year))
+        if search:
+            qs = qs.filter(
+                Q(entity_name__icontains=search)
+                | Q(variable_name__icontains=search)
+                | Q(dataset_id__icontains=search)
+            )
+
+        paginator = Paginator(qs, 50)
+        page_obj = paginator.get_page(request.GET.get("page", 1))
+        categories = (
+            Observation.objects.values_list("category", flat=True)
+            .distinct()
+            .order_by("category")
         )
+        years = (
+            Observation.objects.values_list("year", flat=True)
+            .distinct()
+            .order_by("-year")
+        )
+        total_count = paginator.count
 
-    paginator = Paginator(qs, 50)
-    page_obj = paginator.get_page(request.GET.get("page", 1))
-
-    categories = (
-        Observation.objects.values_list("category", flat=True)
-        .distinct()
-        .order_by("category")
-    )
-    years = (
-        Observation.objects.values_list("year", flat=True)
-        .distinct()
-        .order_by("-year")
-    )
+    except Exception as e:
+        # Table may not exist yet — show empty state instead of crashing
+        logger.warning("Data Explorer query failed (table may not exist yet): %s", e)
+        page_obj = None
+        categories = []
+        years = []
+        total_count = 0
 
     context = {
         "page_obj": page_obj,
@@ -214,7 +223,8 @@ def observations(request):
         "selected_dataset_id": dataset_id,
         "selected_year": year,
         "selected_search": search,
-        "total_count": paginator.count,
+        "total_count": total_count,
+        "table_missing": page_obj is None,
     }
     return render(request, "observations.html", context)
 

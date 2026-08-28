@@ -9,11 +9,11 @@
 </div>
 
 <!-- Filter Controls Bar -->
-<div class="glass-card" style="margin-bottom: 2rem;">
+<div class="card" style="margin-bottom: 2rem;">
     <form method="GET" action="{% url 'observations' %}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 1rem; align-items: end;">
         <div>
             <label style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem;">Category</label>
-            <select name="category" style="width: 100%; padding: 0.65rem 0.8rem; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--card-border); color: #fff; border-radius: 8px;">
+            <select name="category" style="width: 100%; padding: 0.65rem 0.8rem; background: #fff; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px;">
                 <option value="">All Categories</option>
                 {% for cat in categories %}
                     <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -23,7 +23,7 @@
 
         <div>
             <label style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem;">Year</label>
-            <select name="year" style="width: 100%; padding: 0.65rem 0.8rem; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--card-border); color: #fff; border-radius: 8px;">
+            <select name="year" style="width: 100%; padding: 0.65rem 0.8rem; background: #fff; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px;">
                 <option value="">All Years</option>
                 {% for yr in years %}
                     <option value="{{ yr }}" {% if selected_year == yr|stringformat:"i" %}selected{% endif %}>{{ yr }}</option>
@@ -33,12 +33,12 @@
 
         <div>
             <label style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem;">Dataset ID</label>
-            <input type="text" name="dataset_id" value="{{ selected_dataset_id }}" placeholder="e.g. 0012E4EVCP0" style="width: 100%; padding: 0.65rem 0.8rem; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--card-border); color: #fff; border-radius: 8px;">
+            <input type="text" name="dataset_id" value="{{ selected_dataset_id }}" placeholder="e.g. 0012E4EVCP0" style="width: 100%; padding: 0.65rem 0.8rem; background: #fff; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px;">
         </div>
 
         <div>
             <label style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem;">Search Entity / Metric</label>
-            <input type="text" name="search" value="{{ selected_search }}" placeholder="e.g. Region I, Palay" style="width: 100%; padding: 0.65rem 0.8rem; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--card-border); color: #fff; border-radius: 8px;">
+            <input type="text" name="search" value="{{ selected_search }}" placeholder="e.g. Region I, Palay" style="width: 100%; padding: 0.65rem 0.8rem; background: #fff; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px;">
         </div>
 
         <div style="display: flex; gap: 0.5rem;">
@@ -49,62 +49,71 @@
 </div>
 
 <!-- Table -->
-<div class="glass-card" style="padding: 1rem; overflow-x: auto;">
-    <div style="padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.9rem;">
-        <div>Total Results Found: <strong style="color: #fff;">{{ total_count }}</strong> observations</div>
-        <div>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
-    </div>
+<div class="card" style="padding: 1rem; overflow-x: auto;">
 
-    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
-        <thead>
-            <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
-                <th style="padding: 0.8rem;">ID</th>
-                <th style="padding: 0.8rem;">Category</th>
-                <th style="padding: 0.8rem;">Dataset ID</th>
-                <th style="padding: 0.8rem;">Entity Name</th>
-                <th style="padding: 0.8rem;">Variable Name</th>
-                <th style="padding: 0.8rem;">Year</th>
-                <th style="padding: 0.8rem;">Period</th>
-                <th style="padding: 0.8rem; text-align: right;">Value</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for obs in page_obj %}
-                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
-                    <td style="padding: 0.8rem; color: var(--text-muted);">{{ obs.id }}</td>
-                    <td style="padding: 0.8rem;"><span style="background: rgba(56, 189, 248, 0.15); color: var(--primary); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">{{ obs.category }}</span></td>
-                    <td style="padding: 0.8rem; font-family: monospace; color: #a855f7;">{{ obs.dataset_id }}</td>
-                    <td style="padding: 0.8rem; font-weight: 500;">{{ obs.entity_name }}</td>
-                    <td style="padding: 0.8rem;">{{ obs.variable_name }}</td>
-                    <td style="padding: 0.8rem;">{{ obs.year|default:"-" }}</td>
-                    <td style="padding: 0.8rem; color: var(--text-muted);">{{ obs.period|default:"-" }}</td>
-                    <td style="padding: 0.8rem; text-align: right; font-weight: 700; color: #4ade80;">{{ obs.value|floatformat:2 }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="8" style="padding: 3rem; text-align: center; color: var(--text-muted);">
-                        No observations matching your query parameters.
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <!-- Pagination Controls -->
-    {% if page_obj.has_other_pages %}
-        <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; padding: 0.5rem;">
-            {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">&laquo; Prev</a>
-            {% endif %}
-            
-            <span style="padding: 0.4rem 0.8rem; color: var(--text-muted); font-size: 0.85rem;">
-                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-            </span>
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Next &raquo;</a>
-            {% endif %}
+    {% if table_missing %}
+        <div style="padding: 3rem; text-align: center; color: var(--text-muted);">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">📭</div>
+            <p style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">No data loaded yet</p>
+            <p style="font-size: 0.875rem;">The <code style="color: var(--primary);">observations</code> table doesn't exist in PostgreSQL.<br>
+            Go to <a href="{% url 'pipeline' %}" style="color: var(--primary);">Pipeline Control Center</a> and run <strong>Load to Database</strong> first.</p>
         </div>
+    {% else %}
+        <div style="padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.9rem;">
+            <div>Total Results Found: <strong style="color: var(--text-main);">{{ total_count }}</strong> observations</div>
+            <div>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
+                    <th style="padding: 0.8rem;">ID</th>
+                    <th style="padding: 0.8rem;">Category</th>
+                    <th style="padding: 0.8rem;">Dataset ID</th>
+                    <th style="padding: 0.8rem;">Entity Name</th>
+                    <th style="padding: 0.8rem;">Variable Name</th>
+                    <th style="padding: 0.8rem;">Year</th>
+                    <th style="padding: 0.8rem;">Period</th>
+                    <th style="padding: 0.8rem; text-align: right;">Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obs in page_obj %}
+                    <tr style="border-bottom: 1px solid var(--card-border);">
+                        <td style="padding: 0.8rem; color: var(--text-muted);">{{ obs.id }}</td>
+                        <td style="padding: 0.8rem;"><span style="background: #e0f2fe; color: var(--primary); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">{{ obs.category }}</span></td>
+                        <td style="padding: 0.8rem; font-family: monospace; color: #7e22ce;">{{ obs.dataset_id }}</td>
+                        <td style="padding: 0.8rem; font-weight: 500;">{{ obs.entity_name }}</td>
+                        <td style="padding: 0.8rem;">{{ obs.variable_name }}</td>
+                        <td style="padding: 0.8rem;">{{ obs.year|default:"-" }}</td>
+                        <td style="padding: 0.8rem; color: var(--text-muted);">{{ obs.period|default:"-" }}</td>
+                        <td style="padding: 0.8rem; text-align: right; font-weight: 700; color: #16a34a;">{{ obs.value|floatformat:2 }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                            No observations matching your query parameters.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination Controls -->
+        {% if page_obj.has_other_pages %}
+            <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; padding: 0.5rem;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">&laquo; Prev</a>
+                {% endif %}
+                <span style="padding: 0.4rem 0.8rem; color: var(--text-muted); font-size: 0.85rem;">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Next &raquo;</a>
+                {% endif %}
+            </div>
+        {% endif %}
     {% endif %}
 </div>
+
 {% endblock %}
