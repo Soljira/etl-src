@@ -1,0 +1,9 @@
+services:
+  db: {}
+  api:
+    volumes:
+      - ./data_test:/app/data
+      - ./logs_test:/app/logs
+  web:
+    volumes:
+      - ./data_test:/app/data

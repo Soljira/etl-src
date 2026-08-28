@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: opendata_ph
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
     # container_name: etl-api
     build: .
     ports:
-      - "5000:5000"
+      - "${API_PORT:-5000}:5000"
     environment:
       - DATABASE_URL=postgresql+pg8000://user:password@db:5432/opendata_ph
       - LOG_LEVEL=INFO
@@ -40,7 +40,7 @@ services:
       sh -c "python gui/manage.py migrate --run-syncdb &&
              python gui/manage.py runserver 0.0.0.0:8000"
     ports:
-      - "8000:8000"
+      - "${WEB_PORT:-8000}:8000"
     environment:
       - DATABASE_URL=postgresql+pg8000://user:password@db:5432/opendata_ph
       - LOG_LEVEL=INFO
