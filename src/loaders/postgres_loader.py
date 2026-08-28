@@ -1,5 +1,10 @@
 import logging
+import warnings
 import pandas as pd
+
+# Suppress pandas Copy-on-Write FutureWarnings (harmless until pandas 3.0)
+warnings.filterwarnings("ignore", message=".*ChainedAssignmentError.*", category=FutureWarning)
+warnings.filterwarnings("ignore", message=".*incompatible dtype.*", category=FutureWarning)
 from sqlalchemy.orm import Session
 from src.loaders.base_loader import BaseLoader
 from src.db.models import Observation
@@ -32,13 +37,12 @@ class PostgresLoader(BaseLoader):
                     logger.info(f"Deleted {deleted_count} existing records for dataset {dataset_id}.")
                 session.commit()
                 
-            # 2. Clean up Data and Enforce String Lengths
+            # 2. Build a clean, independent DataFrame for insertion.
+            # Constructing from a dict breaks any parent-child link to `df`,
+            # which prevents pandas Copy-on-Write FutureWarnings entirely.
             model_columns = ["dataset_id", "category", "entity_name", "variable_name", "year", "period", "value"]
-            insert_df = df[[c for c in model_columns if c in df.columns]].copy()
-            
-            # Cast all columns to object first to avoid incompatible dtype warnings
-            for col in insert_df.columns:
-                insert_df[col] = insert_df[col].astype(object)
+            available = [c for c in model_columns if c in df.columns]
+            insert_df = pd.DataFrame({col: df[col].values for col in available})
             
             # Truncate strings to prevent DataError (StringDataRightTruncation)
             str_limits = {"category": 100, "entity_name": 255, "variable_name": 255, "period": 50}
