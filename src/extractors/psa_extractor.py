@@ -9,17 +9,17 @@ from .base_extractor import BaseExtractor
 
 logger = logging.getLogger(__name__)
 
-# Rate limit: max 10 requests per 10 seconds → we use 1.1s between requests to be safe
+# Rate limit: max 10 requests per 10 seconds SABI MISMO NG OPENSTAT API. Use 1.1s between requests to be safe
 PSA_RATE_LIMIT = 1.1
 
 # Base URL for the OpenSTAT PX-Web API
 PSA_API_BASE = "https://openstat.psa.gov.ph/PXWeb/api/v1/en"
 
-# The 4 categories we want — these are the top-level DB folder IDs
-# Confirmed by querying GET /api/v1/en/DB
+# The 4 categories to be extracted. The top-level DB folder IDs
+# Confirmed by querying GET /api/v1/en/DB (curl "https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB")
 TARGET_CATEGORIES = {
     "2E": "Agriculture_Forestry_Fisheries",
-    "3K": "Labor_and_Employment",
+    "3A": "Environment",
     "1A": "Population_and_Vital_Statistics",
     "2G": "Mining_Manufacturing_Construction",
 }
@@ -44,7 +44,10 @@ class PsaExtractor(BaseExtractor):
     ):
         super().__init__(output_dir=output_dir, rate_limit_seconds=rate_limit_seconds)
         self.api_base = PSA_API_BASE
-        self.session.headers.update({"User-Agent": "Mozilla/5.0"})
+        self.session.headers.update({
+            "User-Agent": "Mozilla/5.0",
+            "Content-Type": "application/json",
+        })
 
     # -------------------------------------------------------------------------
     # Discovery helpers
@@ -110,15 +113,19 @@ class PsaExtractor(BaseExtractor):
     def _build_payload(self, variables: list[dict]) -> dict:
         """
         Build a PX-Web POST payload that selects ALL values for every variable.
+
+        Uses 'item' filter with explicit values (not wildcard 'all'/'*') because
+        some OpenSTAT tables return 403 Forbidden when wildcard selection is used.
         """
         query = []
         for var in variables:
+            values = var.get("values", [])
             query.append(
                 {
                     "code": var["code"],
                     "selection": {
-                        "filter": "all",
-                        "values": ["*"],
+                        "filter": "item",
+                        "values": values,
                     },
                 }
             )
@@ -149,6 +156,13 @@ class PsaExtractor(BaseExtractor):
 
         try:
             response = self.session.post(url, json=payload, timeout=60)
+            if response.status_code == 403:
+                # Some tables forbid bulk downloads entirely — skip gracefully
+                logger.warning(
+                    "Table %s returned 403 Forbidden (restricted by PSA). Skipping.",
+                    table_path,
+                )
+                return None
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             logger.error("Failed to download table %s: %s", table_path, e)

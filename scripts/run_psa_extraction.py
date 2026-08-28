@@ -1,6 +1,6 @@
 """
 Quick smoke test: run the PSA extractor against the live OpenSTAT API.
-This hits the real API — only run manually, never in CI.
+This hits the real API. Only run manually, never in CI.
 """
 import sys
 import logging
