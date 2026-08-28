@@ -38,22 +38,22 @@ class PostgresLoader(BaseLoader):
             
             # Truncate strings to prevent DataError (StringDataRightTruncation)
             if "category" in insert_df.columns:
-                insert_df["category"] = insert_df["category"].astype(str).str.slice(0, 100)
+                insert_df.loc[:, "category"] = insert_df["category"].astype(str).str.slice(0, 100)
             if "entity_name" in insert_df.columns:
-                insert_df["entity_name"] = insert_df["entity_name"].astype(str).str.slice(0, 255)
+                insert_df.loc[:, "entity_name"] = insert_df["entity_name"].astype(str).str.slice(0, 255)
             if "variable_name" in insert_df.columns:
-                insert_df["variable_name"] = insert_df["variable_name"].astype(str).str.slice(0, 255)
+                insert_df.loc[:, "variable_name"] = insert_df["variable_name"].astype(str).str.slice(0, 255)
             if "period" in insert_df.columns:
-                insert_df["period"] = insert_df["period"].astype(str).str.slice(0, 50)
+                insert_df.loc[:, "period"] = insert_df["period"].astype(str).str.slice(0, 50)
                 # Replace string 'None'/'nan' with actual None
-                insert_df["period"] = insert_df["period"].replace({"None": None, "nan": None})
+                insert_df.loc[:, "period"] = insert_df["period"].replace({"None": None, "nan": None})
             
             # Cast numeric columns to correct dtypes so SQLAlchemy sends
             # INTEGER / FLOAT instead of VARCHAR to PostgreSQL
             if "year" in insert_df.columns:
-                insert_df["year"] = pd.to_numeric(insert_df["year"], errors="coerce").astype("Int64")
+                insert_df.loc[:, "year"] = pd.to_numeric(insert_df["year"], errors="coerce").astype("Int64")
             if "value" in insert_df.columns:
-                insert_df["value"] = pd.to_numeric(insert_df["value"], errors="coerce").astype("Float64")
+                insert_df.loc[:, "value"] = pd.to_numeric(insert_df["value"], errors="coerce").astype("Float64")
             
             # 3. Bulk insert new records
             # We use engine.begin() to get a connection with an explicit transaction.
