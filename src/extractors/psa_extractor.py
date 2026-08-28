@@ -18,8 +18,8 @@ PSA_API_BASE = "https://openstat.psa.gov.ph/PXWeb/api/v1/en"
 # The 4 categories to be extracted. The top-level DB folder IDs
 # Confirmed by querying GET /api/v1/en/DB (curl "https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB")
 TARGET_CATEGORIES = {
-    "2E": "Agriculture_Forestry_Fisheries",
-    "3A": "Environment",
+    # "2E": "Agriculture_Forestry_Fisheries",
+    # "3A": "Environment",
     "1A": "Population_and_Vital_Statistics",
     "2G": "Mining_Manufacturing_Construction",
 }

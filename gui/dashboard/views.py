@@ -14,6 +14,7 @@ import logging
 import os
 import threading
 import uuid
+import pandas as pd
 from datetime import datetime
 
 from django.contrib import messages
@@ -272,26 +273,30 @@ def pipeline_run(request):
                     df = transformer.transform(filepath)
                     if not df.empty:
                         clean_df, metrics = validator.validate(df)
+                        out_name = os.path.basename(filepath)
+                        transformer.save_processed_data(clean_df, out_name)
                         processed_count += len(clean_df)
                 _log(run_id, "INFO", f"=== Done: {len(raw_files)} file(s) → {processed_count} rows. ===")
 
             elif action == "load":
                 _log(run_id, "INFO", "=== Starting PostgreSQL Loading ===")
-                raw_files = glob.glob("data/raw/psa/*.csv")
-                transformer = PsaTransformer()
-                validator = DataValidator()
+                processed_files = glob.glob("data/processed/*.csv")
                 loader = PostgresLoader(engine)
                 loaded_datasets = 0
-                for filepath in raw_files:
-                    df = transformer.transform(filepath)
-                    if not df.empty:
-                        clean_df, _ = validator.validate(df)
+                for filepath in processed_files:
+                    try:
+                        clean_df = pd.read_csv(filepath)
+                    except Exception as e:
+                        _log(run_id, "ERROR", f"Failed to read {filepath}: {e}")
+                        continue
+                        
+                    if not clean_df.empty:
                         dataset_id = (
                             clean_df["dataset_id"].iloc[0]
                             if "dataset_id" in clean_df
                             else "unknown"
                         )
-                        if loader.load(clean_df, dataset_id):
+                        if loader.load(clean_df, str(dataset_id)):
                             loaded_datasets += 1
                 _log(run_id, "INFO", f"=== Done: {loaded_datasets} dataset(s) loaded into PostgreSQL. ===")
 
@@ -309,12 +314,15 @@ def pipeline_run(request):
                     df = transformer.transform(filepath)
                     if not df.empty:
                         clean_df, _ = validator.validate(df)
+                        out_name = os.path.basename(filepath)
+                        transformer.save_processed_data(clean_df, out_name)
+                        
                         dataset_id = (
                             clean_df["dataset_id"].iloc[0]
                             if "dataset_id" in clean_df
                             else "unknown"
                         )
-                        if loader.load(clean_df, dataset_id):
+                        if loader.load(clean_df, str(dataset_id)):
                             loaded_datasets += 1
                             total_rows += len(clean_df)
                 _log(run_id, "INFO", f"=== Done: {total_rows} rows across {loaded_datasets} dataset(s) loaded. ===")
