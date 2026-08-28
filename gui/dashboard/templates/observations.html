@@ -101,17 +101,60 @@
 
         <!-- Pagination Controls -->
         {% if page_obj.has_other_pages %}
-            <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; padding: 0.5rem;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.35rem; margin-top: 1.5rem; padding: 0.5rem;">
+                {# First + Prev #}
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">&laquo; Prev</a>
+                    <a href="?page=1&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;" title="First page">&laquo;</a>
+                    <a href="?page={{ page_obj.previous_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;">&lsaquo; Prev</a>
+                {% else %}
+                    <span class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; opacity: 0.4; cursor: default;">&laquo;</span>
+                    <span class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; opacity: 0.4; cursor: default;">&lsaquo; Prev</span>
                 {% endif %}
-                <span style="padding: 0.4rem 0.8rem; color: var(--text-muted); font-size: 0.85rem;">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
+
+                {# Page Numbers with Ellipsis #}
+                {% for i in page_obj.paginator.page_range %}
+                    {% if i == page_obj.number %}
+                        <span class="btn btn-primary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; min-width: 2.2rem; text-align: center;">{{ i }}</span>
+                    {% elif i == 1 or i == page_obj.paginator.num_pages or i >= page_obj.number|add:"-3" and i <= page_obj.number|add:"3" %}
+                        <a href="?page={{ i }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; min-width: 2.2rem; text-align: center;">{{ i }}</a>
+                    {% elif i == 2 or i == page_obj.paginator.num_pages|add:"-1" %}
+                        <span style="padding: 0.4rem 0.3rem; color: var(--text-muted); font-size: 0.85rem;">…</span>
+                    {% endif %}
+                {% endfor %}
+
+                {# Next + Last #}
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Next &raquo;</a>
+                    <a href="?page={{ page_obj.next_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;">Next &rsaquo;</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;" title="Last page">&raquo;</a>
+                {% else %}
+                    <span class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; opacity: 0.4; cursor: default;">Next &rsaquo;</span>
+                    <span class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; opacity: 0.4; cursor: default;">&raquo;</span>
                 {% endif %}
             </div>
+
+            {# Go to Page Input #}
+            <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 0.75rem;">
+                <label style="font-size: 0.85rem; color: var(--text-muted);">Go to page:</label>
+                <input type="number" id="goToPageInput" min="1" max="{{ page_obj.paginator.num_pages }}" value="{{ page_obj.number }}" style="width: 5rem; padding: 0.4rem 0.6rem; border: 1px solid var(--card-border); border-radius: 6px; text-align: center; font-size: 0.85rem;">
+                <button onclick="goToPage()" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Go</button>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">of {{ page_obj.paginator.num_pages }}</span>
+            </div>
+
+            <script>
+                function goToPage() {
+                    const input = document.getElementById('goToPageInput');
+                    const page = parseInt(input.value);
+                    const maxPage = {{ page_obj.paginator.num_pages }};
+                    if (page >= 1 && page <= maxPage) {
+                        const params = new URLSearchParams(window.location.search);
+                        params.set('page', page);
+                        window.location.search = params.toString();
+                    }
+                }
+                document.getElementById('goToPageInput').addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') { e.preventDefault(); goToPage(); }
+                });
+            </script>
         {% endif %}
     {% endif %}
 </div>
