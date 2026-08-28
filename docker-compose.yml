@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: etl-db
+    # container_name: etl-db
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -17,7 +17,7 @@ services:
       retries: 5
 
   api:
-    container_name: etl-api
+    # container_name: etl-api
     build: .
     ports:
       - "5000:5000"
@@ -33,7 +33,7 @@ services:
       - ./logs:/app/logs    # Persist pipeline run logs across container restarts
 
   web:
-    container_name: etl-web
+    # container_name: etl-web
     build: .
     # Run migrations first, then start the dev server
     command: >
