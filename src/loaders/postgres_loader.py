@@ -32,25 +32,35 @@ class PostgresLoader(BaseLoader):
                     logger.info(f"Deleted {deleted_count} existing records for dataset {dataset_id}.")
                 session.commit()
                 
-            # 2. Bulk insert new records
-            # Using pandas 'to_sql' for simplicity and speed.
-            # We append to the 'observations' table. 
-            # We don't write the DataFrame index.
-            
-            # Ensure the DataFrame only contains columns that match our model
+            # 2. Clean up Data and Enforce String Lengths
             model_columns = ["dataset_id", "category", "entity_name", "variable_name", "year", "period", "value"]
             insert_df = df[[c for c in model_columns if c in df.columns]].copy()
             
-            # Perform the insert
+            # Truncate strings to prevent DataError (StringDataRightTruncation)
+            if "category" in insert_df.columns:
+                insert_df["category"] = insert_df["category"].astype(str).str.slice(0, 100)
+            if "entity_name" in insert_df.columns:
+                insert_df["entity_name"] = insert_df["entity_name"].astype(str).str.slice(0, 255)
+            if "variable_name" in insert_df.columns:
+                insert_df["variable_name"] = insert_df["variable_name"].astype(str).str.slice(0, 255)
+            if "period" in insert_df.columns:
+                insert_df["period"] = insert_df["period"].astype(str).str.slice(0, 50)
+            
+            # 3. Bulk insert new records
+            # We use engine.begin() to get a connection with an explicit transaction.
+            # If to_sql fails, the context manager rolls back automatically, preventing connection poisoning.
             logger.info(f"Inserting {len(insert_df)} records for dataset {dataset_id}...")
-            insert_df.to_sql(
-                name=Observation.__tablename__,
-                con=self.engine,
-                if_exists="append",
-                index=False,
-                method="multi", # Uses multi-row INSERTs
-                chunksize=1000  # Insert 1000 rows at a time
-            )
+            
+            with self.engine.begin() as conn:
+                insert_df.to_sql(
+                    name=Observation.__tablename__,
+                    con=conn,
+                    if_exists="append",
+                    index=False,
+                    method="multi", # Uses multi-row INSERTs
+                    chunksize=1000  # Insert 1000 rows at a time
+                )
+                
             logger.info(f"Successfully loaded dataset {dataset_id}.")
             return True
             

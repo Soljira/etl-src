@@ -56,11 +56,28 @@ class PsaTransformer(BaseTransformer):
         # 2. Melt the DataFrame
         melted = pd.melt(df, id_vars=id_vars, value_vars=value_vars, var_name="raw_variable", value_name="value")
         
-        # 3. Combine ID columns into a single "entity_name"
-        if len(id_vars) > 1:
-            melted = melted.assign(entity_name=melted[id_vars].astype(str).agg(' - '.join, axis=1))
+        # 3. Separate ID columns into entity_name and variable_name if possible
+        explicit_var_col = None
+        for col in id_vars:
+            if col.lower() in ["indicator", "variable", "commodity"]:
+                explicit_var_col = col
+                break
+                
+        if explicit_var_col:
+            entity_cols = [c for c in id_vars if c != explicit_var_col]
+            if not entity_cols:
+                melted = melted.assign(entity_name="Total / Default")
+            elif len(entity_cols) > 1:
+                melted = melted.assign(entity_name=melted[entity_cols].astype(str).agg(' - '.join, axis=1))
+            else:
+                melted = melted.assign(entity_name=melted[entity_cols[0]])
+            melted["explicit_var"] = melted[explicit_var_col]
         else:
-            melted = melted.assign(entity_name=melted[id_vars[0]])
+            if len(id_vars) > 1:
+                melted = melted.assign(entity_name=melted[id_vars].astype(str).agg(' - '.join, axis=1))
+            else:
+                melted = melted.assign(entity_name=melted[id_vars[0]])
+            melted["explicit_var"] = None
             
         # 4. Parse Year, Period, and Variable Name from the raw_variable
         years = []
@@ -72,7 +89,10 @@ class PsaTransformer(BaseTransformer):
         # Regex to find period like "Quarter 1", "Semester 1", "Annual"
         period_pattern = re.compile(r'(Quarter \d|Semester \d|Annual)')
         
-        for raw_var in melted["raw_variable"].astype(str):
+        for idx, row in melted.iterrows():
+            raw_var = str(row["raw_variable"])
+            expl_var = row["explicit_var"]
+            
             year = None
             period = None
             var_name = raw_var
@@ -85,7 +105,7 @@ class PsaTransformer(BaseTransformer):
             elif re.match(r'^\d{4}$', var_name):
                 # The column is literally just a year (like Labor data)
                 year = int(var_name)
-                var_name = "Value"
+                var_name = ""
                 
             # Extract Period
             period_match = period_pattern.search(var_name)
@@ -93,9 +113,13 @@ class PsaTransformer(BaseTransformer):
                 period = period_match.group(1)
                 var_name = var_name.replace(period_match.group(1), "").strip()
                 
-            if not var_name:
-                var_name = "Value"
-                
+            # Determine final variable name
+            if not var_name or var_name.lower() == "value":
+                if pd.notna(expl_var) and expl_var:
+                    var_name = str(expl_var)
+                else:
+                    var_name = f"Dataset {dataset_id} Metric"
+                    
             years.append(year)
             periods.append(period)
             var_names.append(var_name)
@@ -105,6 +129,9 @@ class PsaTransformer(BaseTransformer):
             period=periods,
             variable_name=var_names
         )
+        
+        # Drop the temporary column
+        melted = melted.drop(columns=["explicit_var", "raw_variable"])
         
         # 5. Clean values (remove non-numeric indicators like '..', '-', converting to NaN)
         cleaned_values = pd.to_numeric(melted['value'].replace(r'[^\d\.\-]', '', regex=True), errors='coerce')
