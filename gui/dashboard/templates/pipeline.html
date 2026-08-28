@@ -33,27 +33,27 @@
 
 <!-- Control Action Cards Grid -->
 <div class="grid-4" style="margin-bottom: 2.5rem;">
-    <div class="card">
+    <div class="card" style="display: flex; flex-direction: column;">
         <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--primary);">1. Extract Data</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Download raw CSV statistics from PSA OpenSTAT API under rate-limit rules.</p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; flex-grow: 1;">Download raw CSV statistics from PSA OpenSTAT.</p>
         <button id="btn-extract" class="btn btn-secondary" style="width: 100%;" onclick="runAction('extract')">Run Extraction</button>
     </div>
 
-    <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #7e22ce;">2. Transform &amp; Validate</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Melt wide tables, extract years/periods, validate quality score &amp; Z-scores.</p>
+    <div class="card" style="display: flex; flex-direction: column;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--primary);">2. Transform &amp; Validate</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; flex-grow: 1;">Melt wide tables, extract years/periods, validate quality score &amp; Z-scores.</p>
         <button id="btn-transform" class="btn btn-secondary" style="width: 100%;" onclick="runAction('transform')">Run Transformation</button>
     </div>
 
-    <div class="card">
-        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #16a34a;">3. Load to Database</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Bulk insert clean, standardized records into PostgreSQL warehouse.</p>
+    <div class="card" style="display: flex; flex-direction: column;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--primary);">3. Load to Database</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; flex-grow: 1;">Bulk insert clean, standardized records into PostgreSQL warehouse.</p>
         <button id="btn-load" class="btn btn-secondary" style="width: 100%;" onclick="runAction('load')">Run Loader</button>
     </div>
 
-    <div class="card" style="border-color: #bae6fd; background: #e0f2fe;">
+    <div class="card" style="border-color: #bae6fd; background: #e0f2fe; display: flex; flex-direction: column;">
         <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #0369a1;">Full Pipeline Run</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Execute end-to-end Extract ➔ Transform ➔ Validate ➔ Load automatically.</p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; flex-grow: 1;">Execute the whole ETL process automatically.</p>
         <button id="btn-all" class="btn btn-primary" style="width: 100%;" onclick="runAction('all')">Execute Full Pipeline</button>
     </div>
 </div>
@@ -61,7 +61,7 @@
 <!-- Execution Log Output Panel -->
 <div class="card">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-        <h2 style="font-size: 1.25rem; margin: 0;">Execution Console</h2>
+        <h2 style="font-size: 1.25rem; margin: 0;">Logs</h2>
         <div style="display: flex; align-items: center; gap: 0.75rem;">
             <span id="status-badge" style="display:none; font-size:0.75rem; padding:0.25rem 0.75rem; border-radius:999px; font-weight:600;"></span>
             <span id="spinner" style="display:none; align-items:center;">
