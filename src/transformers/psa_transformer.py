@@ -37,7 +37,8 @@ class PsaTransformer(BaseTransformer):
         
         for col in df.columns:
             # If it's a known non-value column or doesn't look like a year/value column
-            if col.lower() in ["indicator", "sector", "geographic location", "industry description", "ecosystem/croptype"]:
+            col_lower = col.lower()
+            if col_lower in ["indicator", "sector", "geographic location", "industry description", "ecosystem/croptype", "inputs", "type", "region", "province", "year"]:
                 id_vars.append(col)
             elif re.search(r'\d{4}', col) or col in ["Total Population", "Household Population", "Number of Households"]:
                 value_vars.append(col)
@@ -56,82 +57,89 @@ class PsaTransformer(BaseTransformer):
         # 2. Melt the DataFrame
         melted = pd.melt(df, id_vars=id_vars, value_vars=value_vars, var_name="raw_variable", value_name="value")
         
-        # 3. Separate ID columns into entity_name and variable_name if possible
+        # 3. Identify special columns within id_vars
         explicit_var_col = None
+        explicit_year_col = None
+        entity_cols = []
+        
         for col in id_vars:
-            if col.lower() in ["indicator", "variable", "commodity"]:
+            col_lower = col.lower()
+            if col_lower in ["indicator", "variable", "commodity", "inputs", "type"]:
                 explicit_var_col = col
-                break
+            elif col_lower == "year":
+                explicit_year_col = col
+            else:
+                entity_cols.append(col)
                 
-        if explicit_var_col:
-            entity_cols = [c for c in id_vars if c != explicit_var_col]
-            if not entity_cols:
-                melted = melted.assign(entity_name="Total / Default")
-            elif len(entity_cols) > 1:
-                melted = melted.assign(entity_name=melted[entity_cols].astype(str).agg(' - '.join, axis=1))
-            else:
-                melted = melted.assign(entity_name=melted[entity_cols[0]])
-            melted["explicit_var"] = melted[explicit_var_col]
-        else:
-            if len(id_vars) > 1:
-                melted = melted.assign(entity_name=melted[id_vars].astype(str).agg(' - '.join, axis=1))
-            else:
-                melted = melted.assign(entity_name=melted[id_vars[0]])
-            melted["explicit_var"] = None
-            
-        # 4. Parse Year, Period, and Variable Name from the raw_variable
+        # 4. Map columns for each row
         years = []
         periods = []
         var_names = []
+        entity_names = []
         
-        # Regex to find a 4 digit year
+        # Regexes
         year_pattern = re.compile(r'^(\d{4})')
-        # Regex to find period like "Quarter 1", "Semester 1", "Annual"
         period_pattern = re.compile(r'(Quarter \d|Semester \d|Annual)')
         
         for idx, row in melted.iterrows():
             raw_var = str(row["raw_variable"])
-            expl_var = row["explicit_var"]
             
-            year = None
-            period = None
-            var_name = raw_var
+            # Start with explicit mappings if available
+            row_year = int(row[explicit_year_col]) if explicit_year_col and pd.notna(row[explicit_year_col]) else None
+            row_var = str(row[explicit_var_col]) if explicit_var_col and pd.notna(row[explicit_var_col]) else None
+            row_period = None
             
-            # Extract Year
-            year_match = year_pattern.search(var_name)
-            if year_match:
-                year = int(year_match.group(1))
-                var_name = var_name.replace(year_match.group(1), "").strip()
-            elif re.match(r'^\d{4}$', var_name):
-                # The column is literally just a year (like Labor data)
-                year = int(var_name)
-                var_name = ""
-                
-            # Extract Period
-            period_match = period_pattern.search(var_name)
-            if period_match:
-                period = period_match.group(1)
-                var_name = var_name.replace(period_match.group(1), "").strip()
-                
-            # Determine final variable name
-            if not var_name or var_name.lower() == "value":
-                if pd.notna(expl_var) and expl_var:
-                    var_name = str(expl_var)
-                else:
-                    var_name = f"Dataset {dataset_id} Metric"
+            # Extract from raw_var if year/var are not yet satisfied
+            leftover_raw = raw_var
+            
+            # If we don't have a year yet, try to find it in raw_var
+            if not row_year:
+                year_match = year_pattern.search(leftover_raw)
+                if year_match:
+                    row_year = int(year_match.group(1))
+                    leftover_raw = leftover_raw.replace(year_match.group(1), "").strip()
+                elif re.match(r'^\d{4}$', leftover_raw):
+                    row_year = int(leftover_raw)
+                    leftover_raw = ""
                     
-            years.append(year)
-            periods.append(period)
-            var_names.append(var_name)
+            # Try to find period in raw_var
+            period_match = period_pattern.search(leftover_raw)
+            if period_match:
+                row_period = period_match.group(1)
+                leftover_raw = leftover_raw.replace(period_match.group(1), "").strip()
+                
+            # If we STILL don't have a variable_name, use the leftover raw_var
+            if not row_var or row_var.lower() == "value":
+                if leftover_raw and leftover_raw.lower() != "value":
+                    row_var = leftover_raw
+                    leftover_raw = "" # Consumed
+                else:
+                    row_var = f"Dataset {dataset_id} Metric"
+                    
+            # Construct the entity name from entity_cols AND any leftover raw_var
+            row_entities = []
+            for ec in entity_cols:
+                if pd.notna(row[ec]):
+                    row_entities.append(str(row[ec]))
+            if leftover_raw and leftover_raw.lower() != "value":
+                row_entities.append(leftover_raw)
+                
+            row_entity = " - ".join(row_entities) if row_entities else "Total / Default"
+            
+            years.append(row_year)
+            periods.append(row_period)
+            var_names.append(row_var)
+            entity_names.append(row_entity)
             
         melted = melted.assign(
             year=years,
             period=periods,
-            variable_name=var_names
+            variable_name=var_names,
+            entity_name=entity_names
         )
         
-        # Drop the temporary column
-        melted = melted.drop(columns=["explicit_var", "raw_variable"])
+        # Drop raw columns to clean up
+        melted = melted.drop(columns=id_vars + ["raw_variable"])
         
         # 5. Clean values (remove non-numeric indicators like '..', '-', converting to NaN)
         cleaned_values = pd.to_numeric(melted['value'].replace(r'[^\d\.\-]', '', regex=True), errors='coerce')

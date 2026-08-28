@@ -15,13 +15,10 @@ from src.transformers.psa_transformer import PsaTransformer
 def run():
     transformer = PsaTransformer(output_dir="data/processed/psa")
     
-    # Grab one file from each category
-    categories = [
-        "Agriculture_Forestry_Fisheries",
-        "Labor_and_Employment",
-        "Population_and_Vital_Statistics",
-        "Mining_Manufacturing_Construction"
-    ]
+    from src.extractors.psa_extractor import TARGET_CATEGORIES
+    
+    # Grab one file from each dynamically configured category
+    categories = list(TARGET_CATEGORIES.values())
     
     for cat in categories:
         files = glob.glob(f"data/raw/psa/{cat}*.csv")
