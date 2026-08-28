@@ -89,3 +89,28 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Logging — ensure src.* pipeline loggers are always visible at INFO level
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,  # keep src.* loggers alive after Django configures logging
+    "formatters": {
+        "pipeline": {
+            "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "pipeline",
+        },
+    },
+    "loggers": {
+        # Route all src.* pipeline logs to console at INFO
+        "src": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
