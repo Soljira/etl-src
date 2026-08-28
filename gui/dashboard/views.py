@@ -109,14 +109,25 @@ def _attach_handler(run_id: str) -> _FileHandler:
     handler = _FileHandler(run_id)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
     handler.setLevel(logging.INFO)
+    
+    # Attach to root logger
     lg = logging.getLogger()
     lg.setLevel(logging.INFO)
     lg.addHandler(handler)
+    
+    # Also attach to 'src' and 'scripts' loggers explicitly because Django 
+    # configuration sets propagate=False for them.
+    for name in ["src", "scripts"]:
+        logger_instance = logging.getLogger(name)
+        logger_instance.addHandler(handler)
+        
     return handler
 
 
 def _detach_handler(handler: _FileHandler) -> None:
     logging.getLogger().removeHandler(handler)
+    for name in ["src", "scripts"]:
+        logging.getLogger(name).removeHandler(handler)
 
 
 def _log(run_id: str, level: str, msg: str) -> None:

@@ -95,28 +95,29 @@ class DataValidator:
         return df, metrics
         
     def _detect_anomalies(self, df: pd.DataFrame, metrics: Dict[str, Any]) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-        # Detect extreme statistical outliers per variable (Z-score > 3)
-        # We need enough data points per variable to calculate meaningful stats
-        anomalies_count = 0
-        
-        # Only check numeric columns (which 'value' should be)
+        # Vectorized statistical outlier detection per variable (Z-score > 3)
         if not pd.api.types.is_numeric_dtype(df["value"]):
             metrics["warnings"].append("'value' column is not purely numeric.")
             return df, metrics
-            
-        for var_name, group in df.groupby("variable_name"):
-            if len(group) > 5:  # Need at least a few points
-                mean = group["value"].mean()
-                std = group["value"].std()
-                
-                if pd.notna(std) and std > 0:
-                    z_scores = np.abs((group["value"] - mean) / std)
-                    outliers = z_scores > 3.0
-                    
-                    if outliers.any():
-                        num_outliers = outliers.sum()
-                        anomalies_count += num_outliers
-                        metrics["warnings"].append(f"Detected {num_outliers} extreme statistical outliers for variable '{var_name}'.")
-                        
-        metrics["anomalies_detected"] = anomalies_count
+
+        if len(df) == 0:
+            metrics["anomalies_detected"] = 0
+            return df, metrics
+
+        # Group stats in vectorized operations instead of slow python loops
+        grouped = df.groupby("variable_name")["value"]
+        counts = grouped.transform("count")
+        means = grouped.transform("mean")
+        stds = grouped.transform("std")
+
+        # Mask for groups with > 5 items and std > 0
+        valid_mask = (counts > 5) & (stds > 0) & stds.notna()
+        z_scores = np.where(valid_mask, np.abs((df["value"] - means) / stds), 0.0)
+        
+        num_outliers = int((z_scores > 3.0).sum())
+        metrics["anomalies_detected"] = num_outliers
+        
+        if num_outliers > 0:
+            metrics["warnings"].append(f"Detected {num_outliers} extreme statistical outliers across dataset.")
+
         return df, metrics

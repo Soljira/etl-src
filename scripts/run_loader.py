@@ -35,7 +35,7 @@ def run():
         logger.info("Loading: %s", os.path.basename(file))
         
         try:
-            df = pd.read_csv(file)
+            df = pd.read_csv(file, low_memory=False)
             if df.empty:
                 logger.warning("File %s is empty, skipping.", file)
                 continue
@@ -48,7 +48,7 @@ def run():
                 loaded_count += 1
                 logger.info("Successfully loaded category '%s' (%d rows) into PostgreSQL.", cat_name, len(clean_df))
             else:
-                logger.error("Failed to load dataset %s.", dataset_id)
+                logger.error("Failed to load dataset %s.", cat_name)
         except Exception as e:
             logger.error("Error loading %s: %s", file, e)
 

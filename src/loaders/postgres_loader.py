@@ -30,20 +30,26 @@ class PostgresLoader(BaseLoader):
             return False
             
         try:
-            with Session(self.engine) as session:
-                # 1. Delete existing records to make operations idempotent
-                if dataset_id:
-                    target_ids = [dataset_id]
-                elif "dataset_id" in df.columns:
-                    target_ids = [str(x) for x in df["dataset_id"].dropna().unique()]
-                else:
-                    target_ids = []
+            # 1. Delete existing records to make operations idempotent
+            if dataset_id:
+                target_ids = [dataset_id]
+            elif "dataset_id" in df.columns:
+                target_ids = [str(x) for x in df["dataset_id"].dropna().unique()]
+            else:
+                target_ids = []
 
-                if target_ids:
-                    deleted_count = session.query(Observation).filter(Observation.dataset_id.in_(target_ids)).delete(synchronize_session=False)
-                    if deleted_count > 0:
-                        logger.info(f"Deleted {deleted_count} existing records for dataset(s): {target_ids[:5]}...")
-                    session.commit()
+            # Perform deletion using a separate Session to avoid locking during bulk insert
+            if target_ids:
+                try:
+                    with Session(self.engine) as del_session:
+                        deleted_count = del_session.query(Observation).filter(Observation.dataset_id.in_(target_ids)).delete(synchronize_session=False)
+                        if deleted_count > 0:
+                            logger.info(f"Deleted {deleted_count} existing records for dataset(s): {target_ids[:5]}...")
+                        del_session.commit()
+                except Exception as del_err:
+                    logger.error(f"Failed to delete existing records for dataset(s) {target_ids}: {del_err}")
+                
+
                 
             # 2. Build a clean, independent DataFrame for insertion.
             # Constructing from a dict breaks any parent-child link to `df`,
@@ -65,22 +71,38 @@ class PostgresLoader(BaseLoader):
             if "value" in insert_df.columns:
                 insert_df["value"] = pd.to_numeric(insert_df["value"], errors="coerce").astype("Float64")
             
-            # 3. Bulk insert new records
-            # We use engine.begin() to get a connection with an explicit transaction.
-            # If to_sql fails, the context manager rolls back automatically, preventing connection poisoning.
-            logger.info(f"Inserting {len(insert_df)} records for dataset {dataset_id}...")
+            # 3. Bulk insert new records in chunks with progress logging
+            total_records = len(insert_df)
+            batch_size = 50000
+            total_batches = (total_records + batch_size - 1) // batch_size
+            
+            logger.info(f"Inserting {total_records} records into PostgreSQL in {total_batches} batch(es)...")
             
             with self.engine.begin() as conn:
-                insert_df.to_sql(
-                    name=Observation.__tablename__,
-                    con=conn,
-                    if_exists="append",
-                    index=False,
-                    method="multi", # Uses multi-row INSERTs
-                    chunksize=1000  # Insert 1000 rows at a time
-                )
+                # If there are target_ids, delete existing records first
+                if target_ids:
+                    from sqlalchemy import delete
+                    del_stmt = delete(Observation).where(Observation.dataset_id.in_(target_ids))
+                    result = conn.execute(del_stmt)
+                    deleted_count = result.rowcount
+                    if deleted_count and deleted_count > 0:
+                        logger.info(f"Deleted {deleted_count} existing records for dataset(s): {target_ids[:5]}...")
+                # Bulk insert new records in chunks with progress logging
+                for i in range(0, total_records, batch_size):
+                    chunk_df = insert_df.iloc[i : i + batch_size]
+                    chunk_df.to_sql(
+                        name=Observation.__tablename__,
+                        con=conn,
+                        if_exists="append",
+                        index=False,
+                        method="multi",  # Uses multi-row INSERTs
+                        chunksize=5000,  # 5000 rows per SQL multi-INSERT (35,000 params, under Postgres 65,535 limit)
+                    )
+                    current_batch = (i // batch_size) + 1
+                    inserted_so_far = min(i + batch_size, total_records)
+                    logger.info(f"Loaded batch {current_batch}/{total_batches} ({inserted_so_far}/{total_records} rows)...")
                 
-            logger.info(f"Successfully loaded dataset {dataset_id}.")
+            logger.info(f"Successfully loaded all {total_records} records into PostgreSQL.")
             return True
             
         except Exception as e:

@@ -36,18 +36,13 @@ class PsaTransformer(BaseTransformer):
         value_vars = []
         
         for col in df.columns:
-            # If it's a known non-value column or doesn't look like a year/value column
             col_lower = col.lower()
-            if col_lower in ["indicator", "sector", "geographic location", "industry description", "ecosystem/croptype", "inputs", "type", "region", "province", "year"]:
-                id_vars.append(col)
-            elif re.search(r'\d{4}', col) or col in ["Total Population", "Household Population", "Number of Households"]:
+            # If it explicitly looks like a year header or known wide value column
+            if re.search(r'\d{4}', col) or col in ["Total Population", "Household Population", "Number of Households"]:
                 value_vars.append(col)
             else:
-                # Fallback: if it's the first column it's probably an ID
-                if len(id_vars) == 0:
-                    id_vars.append(col)
-                else:
-                    value_vars.append(col)
+                # All non-year metadata columns (Sex, Age Group, Geographic Location, Inputs, Sector, etc.) are ID columns
+                id_vars.append(col)
                     
         if not id_vars:
             # Extreme fallback
@@ -108,13 +103,15 @@ class PsaTransformer(BaseTransformer):
                 row_period = period_match.group(1)
                 leftover_raw = leftover_raw.replace(period_match.group(1), "").strip()
                 
-            # If we STILL don't have a variable_name, use the leftover raw_var
+            # If we STILL don't have a variable_name, use a descriptive metric name based on category
             if not row_var or row_var.lower() == "value":
                 if leftover_raw and leftover_raw.lower() != "value":
                     row_var = leftover_raw
                     leftover_raw = "" # Consumed
+                elif category.lower().startswith("population"):
+                    row_var = "Population Count"
                 else:
-                    row_var = f"Dataset {dataset_id} Metric"
+                    row_var = "Observed Value"
                     
             # Construct the entity name from entity_cols AND any leftover raw_var
             row_entities = []
