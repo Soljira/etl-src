@@ -28,12 +28,17 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./data:/app/data  # Mount data dir so extraction persists locally
+      - .:/app              # Mount entire project so code changes are live
+      - ./data:/app/data
+      - ./logs:/app/logs    # Persist pipeline run logs across container restarts
 
   web:
     container_name: etl-web
     build: .
-    command: python gui/manage.py runserver 0.0.0.0:8000
+    # Run migrations first, then start the dev server
+    command: >
+      sh -c "python gui/manage.py migrate --run-syncdb &&
+             python gui/manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     environment:
@@ -43,6 +48,7 @@ services:
       db:
         condition: service_healthy
     volumes:
+      - .:/app              # Mount entire project so code changes are live
       - ./data:/app/data
 
 volumes:

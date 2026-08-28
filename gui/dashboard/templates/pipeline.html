@@ -93,7 +93,7 @@ function setStatus(text, color) {
 
 function clearConsole() {
     if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
-    sessionStorage.removeItem('etl_run');
+    localStorage.removeItem('etl_run');
     document.getElementById('console-output').innerHTML = '<span class="log-muted">— Console cleared. —</span>';
     document.getElementById('status-badge').style.display = 'none';
     setRunning(false);
@@ -129,7 +129,7 @@ function pollLogs(runId, since) {
                 appendLine('ERROR', 'Failed to fetch logs: ' + data.error);
                 setRunning(false);
                 setStatus('Error ✗', '#f87171');
-                sessionStorage.removeItem('etl_run');
+                localStorage.removeItem('etl_run');
                 return;
             }
 
@@ -137,10 +137,10 @@ function pollLogs(runId, since) {
             const nextSince = since + data.logs.length;
 
             // Persist progress so a page refresh can resume
-            const saved = JSON.parse(sessionStorage.getItem('etl_run') || '{}');
+            const saved = JSON.parse(localStorage.getItem('etl_run') || '{}');
             saved.since = nextSince;
             saved.done = data.done;
-            sessionStorage.setItem('etl_run', JSON.stringify(saved));
+            localStorage.setItem('etl_run', JSON.stringify(saved));
 
             if (data.done) {
                 setRunning(false);
@@ -166,7 +166,7 @@ function pollLogs(runId, since) {
 function runAction(action) {
     // Cancel any previous polling
     if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
-    sessionStorage.removeItem('etl_run');
+    localStorage.removeItem('etl_run');
     clearConsole();
     setRunning(true);
     setStatus('Running…', '#38bdf8');
@@ -183,7 +183,7 @@ function runAction(action) {
     .then(r => r.json())
     .then(data => {
         if (!data.run_id) throw new Error('No run_id returned');
-        sessionStorage.setItem('etl_run', JSON.stringify({
+        localStorage.setItem('etl_run', JSON.stringify({
             run_id: data.run_id,
             since: 0,
             done: false,
@@ -198,16 +198,16 @@ function runAction(action) {
     });
 }
 
-// On page load: check sessionStorage and resume/replay if a run exists
+// On page load: check localStorage and resume/replay if a run exists
 (function resumeOnLoad() {
-    const saved = JSON.parse(sessionStorage.getItem('etl_run') || 'null');
+    const saved = JSON.parse(localStorage.getItem('etl_run') || 'null');
     if (!saved || !saved.run_id) return;
 
     // Replay all logs received so far
     fetch(`/pipeline/logs/?run_id=${encodeURIComponent(saved.run_id)}&since=0`)
         .then(r => r.json())
         .then(data => {
-            if (data.error) { sessionStorage.removeItem('etl_run'); return; }
+            if (data.error) { localStorage.removeItem('etl_run'); return; }
 
             data.logs.forEach(entry => appendLine(entry.level, entry.msg));
 

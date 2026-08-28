@@ -1,24 +1,27 @@
 """
 Dashboard views for the ETL Web GUI.
 
-Pipeline logging uses a background-thread + in-memory log store approach:
+Pipeline logging uses a background-thread + file-based log store:
   POST /pipeline/run/  → starts the pipeline in a thread, returns run_id (JSON)
-  GET  /pipeline/logs/ → returns new log lines since `since` index (JSON, poll every 500 ms)
+  GET  /pipeline/logs/ → reads new log lines from logs/pipeline/{run_id}.jsonl
 
-This avoids WSGI streaming/buffering issues entirely.
+Each run writes to a JSONL file on disk so logs survive container restarts.
+The browser polls /pipeline/logs/ every 500 ms and replays all lines on reload.
 """
 import glob
 import json
 import logging
+import os
 import threading
 import uuid
+from datetime import datetime
+
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Observation
@@ -31,37 +34,82 @@ from src.loaders.postgres_loader import PostgresLoader
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# In-memory log store  {run_id: {"logs": [...], "done": bool}}
+# File-based log store
 # ---------------------------------------------------------------------------
-_RUNS: dict[str, dict] = {}
-_RUNS_LOCK = threading.Lock()
+# Each run writes to:  logs/pipeline/<run_id>.jsonl
+# Each line is a JSON object: {"level": "INFO", "msg": "..."} or {"done": true}
+# The file is mounted via docker-compose so it persists across restarts.
+
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs", "pipeline")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+_WRITE_LOCK = threading.Lock()  # serialise concurrent writes to the same file
 
 
-class _RunHandler(logging.Handler):
-    """Appends formatted log records straight into a run's log list."""
+def _run_log_path(run_id: str) -> str:
+    return os.path.join(LOG_DIR, f"{run_id}.jsonl")
+
+
+def _write_entry(run_id: str, entry: dict) -> None:
+    """Append one JSON line to the run's log file (thread-safe)."""
+    with _WRITE_LOCK:
+        with open(_run_log_path(run_id), "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry) + "\n")
+            fh.flush()
+
+
+def _read_entries(run_id: str) -> tuple[list[dict], bool]:
+    """
+    Read all log entries from the run's JSONL file.
+    Returns (entries, done) where done is True if the sentinel line exists.
+    """
+    path = _run_log_path(run_id)
+    if not os.path.exists(path):
+        return [], False
+
+    entries: list[dict] = []
+    done = False
+    with open(path, "r", encoding="utf-8") as fh:
+        for raw in fh:
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if obj.get("done"):
+                done = True
+            else:
+                entries.append(obj)
+    return entries, done
+
+
+# ---------------------------------------------------------------------------
+# Logging handler that writes to the JSONL file
+# ---------------------------------------------------------------------------
+
+class _FileHandler(logging.Handler):
+    """Writes formatted log records as JSON lines to the run's log file."""
 
     def __init__(self, run_id: str) -> None:
         super().__init__()
         self._run_id = run_id
 
     def emit(self, record: logging.LogRecord) -> None:
-        entry = {
+        _write_entry(self._run_id, {
             "level": record.levelname,
             "msg": self.format(record),
-        }
-        with _RUNS_LOCK:
-            run = _RUNS.get(self._run_id)
-            if run is not None:
-                run["logs"].append(entry)
+        })
 
 
-# The 'src' logger is the parent of all pipeline loggers (src.extractors.*, etc.)
-# It is configured in settings.LOGGING with level=INFO and propagate=False.
+# The 'src' logger is the parent of all pipeline module loggers.
+# Configured in settings.LOGGING with level=INFO and propagate=False.
 _PIPELINE_LOGGER = "src"
 
 
-def _attach_handler(run_id: str) -> _RunHandler:
-    handler = _RunHandler(run_id)
+def _attach_handler(run_id: str) -> _FileHandler:
+    handler = _FileHandler(run_id)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
     handler.setLevel(logging.INFO)
     lg = logging.getLogger(_PIPELINE_LOGGER)
@@ -71,19 +119,15 @@ def _attach_handler(run_id: str) -> _RunHandler:
     return handler
 
 
-def _detach_handler(handler: _RunHandler) -> None:
+def _detach_handler(handler: _FileHandler) -> None:
     logging.getLogger(_PIPELINE_LOGGER).removeHandler(handler)
 
 
 def _log(run_id: str, level: str, msg: str) -> None:
-    """Append a synthetic log entry formatted identically to the logging module output."""
-    from datetime import datetime
+    """Write a synthetic separator/summary line in the same format as the logging module."""
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
     formatted = f"{ts} [{level}] pipeline: {msg}"
-    with _RUNS_LOCK:
-        run = _RUNS.get(run_id)
-        if run is not None:
-            run["logs"].append({"level": level, "msg": formatted})
+    _write_entry(run_id, {"level": level, "msg": formatted})
 
 
 # ---------------------------------------------------------------------------
@@ -190,14 +234,14 @@ def pipeline_run(request):
     POST /pipeline/run/
     Body: action=extract|transform|load|all
 
-    Starts the pipeline action in a background daemon thread.
-    Returns JSON: {"run_id": "<uuid>"}
+    Creates a JSONL log file for this run, starts the pipeline in a daemon
+    thread, and immediately returns the run_id so the browser can start polling.
     """
     action = request.POST.get("action", "")
     run_id = str(uuid.uuid4())
 
-    with _RUNS_LOCK:
-        _RUNS[run_id] = {"logs": [], "done": False}
+    # Create the log file immediately so pipeline_logs can detect it
+    open(_run_log_path(run_id), "w").close()
 
     def _worker() -> None:
         handler = _attach_handler(run_id)
@@ -272,14 +316,10 @@ def pipeline_run(request):
             _log(run_id, "ERROR", f"Pipeline error: {exc}")
         finally:
             _detach_handler(handler)
-            with _RUNS_LOCK:
-                run = _RUNS.get(run_id)
-                if run is not None:
-                    run["done"] = True
+            # Write the sentinel "done" line
+            _write_entry(run_id, {"done": True})
 
-    thread = threading.Thread(target=_worker, daemon=True)
-    thread.start()
-
+    threading.Thread(target=_worker, daemon=True).start()
     return JsonResponse({"run_id": run_id})
 
 
@@ -288,17 +328,20 @@ def pipeline_logs(request):
     """
     GET /pipeline/logs/?run_id=<uuid>&since=<int>
 
-    Returns new log entries since index `since`.
+    Reads the JSONL log file for the run and returns entries since index `since`.
     JSON: {"logs": [{"level": str, "msg": str}, ...], "done": bool}
     """
     run_id = request.GET.get("run_id", "")
     since = int(request.GET.get("since", 0))
 
-    with _RUNS_LOCK:
-        run = _RUNS.get(run_id)
-        if run is None:
-            return JsonResponse({"error": "Unknown run_id"}, status=404)
-        new_logs = run["logs"][since:]
-        done = run["done"]
+    # Basic path safety: only allow UUIDs
+    try:
+        uuid.UUID(run_id)
+    except ValueError:
+        return JsonResponse({"error": "Invalid run_id"}, status=400)
 
-    return JsonResponse({"logs": new_logs, "done": done})
+    entries, done = _read_entries(run_id)
+    if not os.path.exists(_run_log_path(run_id)):
+        return JsonResponse({"error": "Unknown run_id"}, status=404)
+
+    return JsonResponse({"logs": entries[since:], "done": done})
