@@ -118,6 +118,20 @@ class DataValidator:
         metrics["anomalies_detected"] = num_outliers
         
         if num_outliers > 0:
-            metrics["warnings"].append(f"Detected {num_outliers} extreme statistical outliers across dataset.")
+            outlier_mask = z_scores > 3.0
+            # Break down outlier counts per dataset_id
+            if "dataset_id" in df.columns:
+                outlier_counts = df.loc[outlier_mask, "dataset_id"].value_counts()
+                breakdown = ", ".join(
+                    f"{did} ({count})" for did, count in outlier_counts.items()
+                )
+                metrics["warnings"].append(
+                    f"Detected {num_outliers} extreme statistical outliers "
+                    f"in {len(outlier_counts)} dataset(s): {breakdown}"
+                )
+            else:
+                metrics["warnings"].append(
+                    f"Detected {num_outliers} extreme statistical outliers across dataset."
+                )
 
         return df, metrics
