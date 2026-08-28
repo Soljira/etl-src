@@ -1,48 +1,72 @@
 """
-Run the PSA transformer over a sample of raw CSVs to verify output.
+Run the PSA transformer over raw CSVs to transform and validate output.
 """
 import glob
 import logging
 import os
 import sys
+import pandas as pd
 
 sys.path.insert(0, ".")
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 from src.transformers.psa_transformer import PsaTransformer
+from src.validators.base_validator import DataValidator
 
 def run():
+    logger.info("=== Starting Data Transformation & Quality Validation ===")
     transformer = PsaTransformer(output_dir="data/processed/psa")
+    validator = DataValidator()
     
-    from src.extractors.psa_extractor import TARGET_CATEGORIES
+    raw_files = glob.glob("data/raw/psa/*.csv")
+    if not raw_files:
+        logger.warning("No raw CSV files found in data/raw/psa/")
+        return []
+
+    # Dictionary mapping category_name -> list of transformed DataFrames
+    category_dfs = {}
     
-    # Grab one file from each dynamically configured category
-    categories = list(TARGET_CATEGORIES.values())
-    
-    for cat in categories:
-        files = glob.glob(f"data/raw/psa/{cat}*.csv")
-        if not files:
-            print(f"No files found for {cat}")
-            continue
-            
-        test_file = files[0]
-        print(f"\n======================================")
-        print(f"Transforming: {os.path.basename(test_file)}")
-        print(f"======================================")
-        
+    for raw_file in raw_files:
         try:
-            df = transformer.transform(test_file)
+            logger.info("Transforming: %s", os.path.basename(raw_file))
+            df = transformer.transform(raw_file)
             if not df.empty:
-                print(f"Success! {len(df)} rows transformed.")
-                print(df.head(5).to_string(index=False))
-                
-                # Save it
-                transformer.save_processed_data(df, os.path.basename(test_file))
+                cat = df["category"].iloc[0] if "category" in df.columns and pd.notna(df["category"].iloc[0]) else "Unknown"
+                if cat not in category_dfs:
+                    category_dfs[cat] = []
+                category_dfs[cat].append(df)
             else:
-                print("Transformation resulted in empty DataFrame.")
+                logger.warning("Transformation resulted in empty DataFrame for %s", raw_file)
         except Exception as e:
-            print(f"Error transforming: {e}")
+            logger.error("Error transforming %s: %s", raw_file, e)
+
+    processed_files = []
+    total_rows = 0
+
+    # Clean out any old individual CSV files in output_dir before saving consolidated ones
+    for old_file in glob.glob(os.path.join(transformer.output_dir, "*.csv")):
+        try:
+            os.remove(old_file)
+        except Exception:
+            pass
+
+    # Save one consolidated CSV file per category
+    for cat, dfs in category_dfs.items():
+        cat_df = pd.concat(dfs, ignore_index=True)
+        clean_df, metrics = validator.validate(cat_df)
+        out_filename = f"{cat}.csv"
+        saved_path = transformer.save_processed_data(clean_df, out_filename)
+        processed_files.append(saved_path)
+        total_rows += len(clean_df)
+        logger.info(
+            "Saved Category '%s' -> %d rows into %s (Quality Score: %.2f)",
+            cat, len(clean_df), out_filename, metrics.get("quality_score", 100.0)
+        )
+
+    logger.info("=== Transformation Complete: %d category file(s) saved -> %d total rows. ===", len(processed_files), total_rows)
+    return processed_files
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     run()

@@ -19,23 +19,31 @@ class PostgresLoader(BaseLoader):
     def __init__(self, engine):
         self.engine = engine
 
-    def load(self, df: pd.DataFrame, dataset_id: str) -> bool:
+    def load(self, df: pd.DataFrame, dataset_id: str = None) -> bool:
         """
         Loads the DataFrame into the 'observations' table.
-        Deletes any existing records for the given dataset_id before inserting
+        Deletes any existing records for datasets present in df before inserting
         to prevent duplicate data across multiple pipeline runs.
         """
         if df.empty:
-            logger.warning(f"Skipping load for {dataset_id}: DataFrame is empty.")
+            logger.warning("Skipping load: DataFrame is empty.")
             return False
             
         try:
             with Session(self.engine) as session:
-                # 1. Delete existing records for this dataset to make operations idempotent
-                deleted_count = session.query(Observation).filter(Observation.dataset_id == dataset_id).delete()
-                if deleted_count > 0:
-                    logger.info(f"Deleted {deleted_count} existing records for dataset {dataset_id}.")
-                session.commit()
+                # 1. Delete existing records to make operations idempotent
+                if dataset_id:
+                    target_ids = [dataset_id]
+                elif "dataset_id" in df.columns:
+                    target_ids = [str(x) for x in df["dataset_id"].dropna().unique()]
+                else:
+                    target_ids = []
+
+                if target_ids:
+                    deleted_count = session.query(Observation).filter(Observation.dataset_id.in_(target_ids)).delete(synchronize_session=False)
+                    if deleted_count > 0:
+                        logger.info(f"Deleted {deleted_count} existing records for dataset(s): {target_ids[:5]}...")
+                    session.commit()
                 
             # 2. Build a clean, independent DataFrame for insertion.
             # Constructing from a dict breaks any parent-child link to `df`,

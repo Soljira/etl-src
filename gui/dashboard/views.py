@@ -26,11 +26,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Observation
-from src.db.database import engine, test_connection
-from src.extractors.psa_extractor import PsaExtractor
-from src.transformers.psa_transformer import PsaTransformer
-from src.validators.base_validator import DataValidator
-from src.loaders.postgres_loader import PostgresLoader
+from src.db.database import test_connection
 
 logger = logging.getLogger(__name__)
 
@@ -113,15 +109,14 @@ def _attach_handler(run_id: str) -> _FileHandler:
     handler = _FileHandler(run_id)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
     handler.setLevel(logging.INFO)
-    lg = logging.getLogger(_PIPELINE_LOGGER)
+    lg = logging.getLogger()
     lg.setLevel(logging.INFO)
-    lg.disabled = False
     lg.addHandler(handler)
     return handler
 
 
 def _detach_handler(handler: _FileHandler) -> None:
-    logging.getLogger(_PIPELINE_LOGGER).removeHandler(handler)
+    logging.getLogger().removeHandler(handler)
 
 
 def _log(run_id: str, level: str, msg: str) -> None:
@@ -258,74 +253,20 @@ def pipeline_run(request):
         handler = _attach_handler(run_id)
         try:
             if action == "extract":
-                _log(run_id, "INFO", "=== Starting PSA OpenSTAT Extraction ===")
-                extractor = PsaExtractor()
-                files = extractor.extract()
-                _log(run_id, "INFO", f"=== Done: {len(files)} file(s) downloaded. ===")
+                from scripts.run_psa_extraction import run as run_extraction
+                run_extraction()
 
             elif action == "transform":
-                _log(run_id, "INFO", "=== Starting Transformation & Quality Validation ===")
-                raw_files = glob.glob("data/raw/psa/*.csv")
-                transformer = PsaTransformer()
-                validator = DataValidator()
-                processed_count = 0
-                for filepath in raw_files:
-                    df = transformer.transform(filepath)
-                    if not df.empty:
-                        clean_df, metrics = validator.validate(df)
-                        out_name = os.path.basename(filepath)
-                        transformer.save_processed_data(clean_df, out_name)
-                        processed_count += len(clean_df)
-                _log(run_id, "INFO", f"=== Done: {len(raw_files)} file(s) → {processed_count} rows. ===")
+                from scripts.run_transformers import run as run_transformation
+                run_transformation()
 
             elif action == "load":
-                _log(run_id, "INFO", "=== Starting PostgreSQL Loading ===")
-                processed_files = glob.glob("data/processed/*.csv")
-                loader = PostgresLoader(engine)
-                loaded_datasets = 0
-                for filepath in processed_files:
-                    try:
-                        clean_df = pd.read_csv(filepath)
-                    except Exception as e:
-                        _log(run_id, "ERROR", f"Failed to read {filepath}: {e}")
-                        continue
-                        
-                    if not clean_df.empty:
-                        dataset_id = (
-                            clean_df["dataset_id"].iloc[0]
-                            if "dataset_id" in clean_df
-                            else "unknown"
-                        )
-                        if loader.load(clean_df, str(dataset_id)):
-                            loaded_datasets += 1
-                _log(run_id, "INFO", f"=== Done: {loaded_datasets} dataset(s) loaded into PostgreSQL. ===")
+                from scripts.run_loader import run as run_load
+                run_load()
 
             elif action == "all":
-                _log(run_id, "INFO", "=== Full ETL Pipeline: Extract → Transform → Validate → Load ===")
-                extractor = PsaExtractor()
-                files = extractor.extract()
-                _log(run_id, "INFO", f"--- Step 1 complete: {len(files)} file(s) extracted ---")
-                transformer = PsaTransformer()
-                validator = DataValidator()
-                loader = PostgresLoader(engine)
-                loaded_datasets = 0
-                total_rows = 0
-                for filepath in files:
-                    df = transformer.transform(filepath)
-                    if not df.empty:
-                        clean_df, _ = validator.validate(df)
-                        out_name = os.path.basename(filepath)
-                        transformer.save_processed_data(clean_df, out_name)
-                        
-                        dataset_id = (
-                            clean_df["dataset_id"].iloc[0]
-                            if "dataset_id" in clean_df
-                            else "unknown"
-                        )
-                        if loader.load(clean_df, str(dataset_id)):
-                            loaded_datasets += 1
-                            total_rows += len(clean_df)
-                _log(run_id, "INFO", f"=== Done: {total_rows} rows across {loaded_datasets} dataset(s) loaded. ===")
+                from scripts.run_full_pipeline import run as run_full
+                run_full()
 
             else:
                 _log(run_id, "ERROR", f"Unknown action: '{action}'")
