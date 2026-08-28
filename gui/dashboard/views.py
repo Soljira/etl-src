@@ -110,22 +110,19 @@ def _attach_handler(run_id: str) -> _FileHandler:
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
     handler.setLevel(logging.INFO)
     
-    # Attach to root logger
-    lg = logging.getLogger()
-    lg.setLevel(logging.INFO)
-    lg.addHandler(handler)
-    
-    # Also attach to 'src' and 'scripts' loggers explicitly because Django 
-    # configuration sets propagate=False for them.
+    # Attach ONLY to the specific top-level loggers that Django configures with
+    # propagate=False. Do NOT attach to the root logger — doing so causes every
+    # record to be written twice: once by the named logger's handler and once
+    # again after it propagates (or doesn't) to root.
     for name in ["src", "scripts"]:
-        logger_instance = logging.getLogger(name)
-        logger_instance.addHandler(handler)
+        lg = logging.getLogger(name)
+        lg.setLevel(logging.INFO)
+        lg.addHandler(handler)
         
     return handler
 
 
 def _detach_handler(handler: _FileHandler) -> None:
-    logging.getLogger().removeHandler(handler)
     for name in ["src", "scripts"]:
         logging.getLogger(name).removeHandler(handler)
 
@@ -238,7 +235,23 @@ def observations(request):
 
 def pipeline(request):
     """Pipeline Control Center page (just renders the template)."""
-    return render(request, "pipeline.html", {})
+    from src.extractors.psa_extractor import TARGET_CATEGORIES
+    
+    # No categories are pre-selected — user must explicitly choose.
+    default_selected = []
+    
+    formatted_categories = [
+        {
+            "code": code,
+            "label": label.replace("_", " "),
+            "selected": code in default_selected
+        }
+        for code, label in TARGET_CATEGORIES.items()
+    ]
+    
+    return render(request, "pipeline.html", {
+        "categories_list": formatted_categories
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -255,6 +268,7 @@ def pipeline_run(request):
     thread, and immediately returns the run_id so the browser can start polling.
     """
     action = request.POST.get("action", "")
+    categories = request.POST.getlist("categories")
     run_id = str(uuid.uuid4())
 
     # Create the log file immediately so pipeline_logs can detect it
@@ -265,7 +279,7 @@ def pipeline_run(request):
         try:
             if action == "extract":
                 from scripts.run_psa_extraction import run as run_extraction
-                run_extraction()
+                run_extraction(categories=categories if categories else None)
 
             elif action == "transform":
                 from scripts.run_transformers import run as run_transformation
@@ -277,7 +291,7 @@ def pipeline_run(request):
 
             elif action == "all":
                 from scripts.run_full_pipeline import run as run_full
-                run_full()
+                run_full(categories=categories if categories else None)
 
             else:
                 _log(run_id, "ERROR", f"Unknown action: '{action}'")

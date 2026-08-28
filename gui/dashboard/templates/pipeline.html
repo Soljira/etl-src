@@ -8,6 +8,29 @@
     <p style="color: var(--text-muted);">Trigger automated extraction, transformation, validation, and loading stages.</p>
 </div>
 
+<!-- Category Selection -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+        <h3 style="font-size: 1.1rem; margin: 0;">Target Categories</h3>
+        <div>
+            <button onclick="selectAll(true)" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Select All</button>
+            <button onclick="selectAll(false)" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; margin-left: 0.5rem;">Deselect All</button>
+        </div>
+    </div>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Select which categories to include during Extraction. <em>(Extracting all may take a long time due to API limits)</em>.</p>
+    
+    <div style="max-height: 220px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 6px; padding: 1rem; background: #f8fafc;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.8rem;">
+            {% for cat in categories_list %}
+            <label style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.85rem; cursor: pointer; color: #334155; line-height: 1.2;">
+                <input type="checkbox" name="categories" value="{{ cat.code }}" {% if cat.selected %}checked{% endif %} style="margin-top: 0.1rem;"> 
+                <span><strong>{{ cat.code }}</strong> - {{ cat.label }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
 <!-- Control Action Cards Grid -->
 <div class="grid-4" style="margin-bottom: 2.5rem;">
     <div class="card">
@@ -81,6 +104,10 @@ let _pollTimer = null;
 function setRunning(yes) {
     ALL_BTNS.forEach(id => { const b = document.getElementById(id); if (b) b.disabled = yes; });
     document.getElementById('spinner').style.display = yes ? 'inline-flex' : 'none';
+}
+
+function selectAll(check) {
+    document.querySelectorAll('input[name="categories"]').forEach(cb => cb.checked = check);
 }
 
 function setStatus(text, color) {
@@ -171,13 +198,20 @@ function runAction(action) {
     setStatus('Running…', '#38bdf8');
     appendLine('INFO', `Starting: ${action}…`);
 
+    const selectedCategories = Array.from(document.querySelectorAll('input[name="categories"]:checked')).map(cb => cb.value);
+    
+    let requestBody = `action=${encodeURIComponent(action)}`;
+    selectedCategories.forEach(cat => {
+        requestBody += `&categories=${encodeURIComponent(cat)}`;
+    });
+
     fetch('/pipeline/run/', {
         method: 'POST',
         headers: {
             'X-CSRFToken': CSRF,
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `action=${encodeURIComponent(action)}`,
+        body: requestBody,
     })
     .then(r => r.json())
     .then(data => {

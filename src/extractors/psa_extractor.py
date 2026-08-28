@@ -15,13 +15,34 @@ PSA_RATE_LIMIT = 1.1
 # Base URL for the OpenSTAT PX-Web API
 PSA_API_BASE = "https://openstat.psa.gov.ph/PXWeb/api/v1/en"
 
-# The 4 categories to be extracted. The top-level DB folder IDs
-# Confirmed by querying GET /api/v1/en/DB (curl "https://openstat.psa.gov.ph/PXWeb/api/v1/en/DB")
 TARGET_CATEGORIES = {
-    # "2E": "Agriculture_Forestry_Fisheries",
-    # "3A": "Environment",
     "1A": "Population_and_Vital_Statistics",
+    "1B": "Labor_and_Employment",
+    "1C": "Education",
+    "1D": "Health",
+    "1E": "Income_and_Consumption",
+    "1F": "Poverty",
+    "1G": "Human_Settlements_and_Housing",
+    "2A": "Macroeconomic_Statistics",
+    "2B": "Economic_Accounts",
+    "2D": "Services_Statistics",
+    "2E": "Agriculture_Forestry_Fisheries",
     "2G": "Mining_Manufacturing_Construction",
+    "2I": "Tourism",
+    "2L": "Trade_International_and_Domestic",
+    "2M": "Prices",
+    "2N": "Labor_Cost",
+    "3A": "Environment",
+    "3C": "Multi_domain_Statistics",
+    "3D": "Living_Conditions_and_Poverty",
+    "3E": "Gender_and_Special_Population",
+    "3F": "Information_Society",
+    "3G": "Energy",
+    "3I": "Sustainable_Development_Goals",
+    "3K": "Decent_Work_Statistics",
+    "3L": "Food_Security_Indicators",
+    "3M": "Digital_Connectivity",
+    "3S": "Philippine_Statistical_Yearbook",
 }
 
 
@@ -183,14 +204,24 @@ class PsaExtractor(BaseExtractor):
     # Public interface
     # -------------------------------------------------------------------------
 
-    def extract(self) -> list[str]:
+    def extract(self, categories: list[str] = None) -> list[str]:
         """
-        Discover and download all tables under the 4 target categories.
+        Discover and download all tables under the specified target categories.
         Returns a list of file paths for all successfully downloaded CSVs.
         """
         all_files: list[str] = []
+        
+        # Determine which categories to extract
+        if categories:
+            # Filter TARGET_CATEGORIES to only include the requested keys
+            targets = {k: v for k, v in TARGET_CATEGORIES.items() if k in categories}
+            if not targets:
+                logger.warning("None of the specified categories %s were found in TARGET_CATEGORIES.", categories)
+                return []
+        else:
+            targets = TARGET_CATEGORIES
 
-        for category_id, category_label in TARGET_CATEGORIES.items():
+        for category_id, category_label in targets.items():
             logger.info(
                 "=== Extracting category: %s (%s) ===", category_label, category_id
             )

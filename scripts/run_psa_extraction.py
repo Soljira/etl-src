@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 
 from src.extractors.psa_extractor import PsaExtractor
 
-def run():
+def run(categories: list[str] = None):
     logger.info("=== Starting PSA OpenSTAT Extraction ===")
     extractor = PsaExtractor()
-    files = extractor.extract()
+    files = extractor.extract(categories=categories)
     logger.info("========== EXTRACTION RESULTS ==========")
     logger.info("Total files downloaded: %d", len(files))
     for f in files:
@@ -23,6 +23,12 @@ def run():
             logger.info("  %s  (%.1f KB)", f, size_kb)
     return files
 
+import argparse
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run PSA OpenSTAT Extraction")
+    parser.add_argument("--categories", nargs="+", help="List of category IDs to extract (e.g. 2E 1A)")
+    args = parser.parse_args()
+    
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-    run()
+    run(categories=args.categories)
