@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Pipeline Control - Open Data PH ETL{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem;">Pipeline Control Center</h1>
+    <p style="color: var(--text-muted);">Trigger automated extraction, transformation, validation, and loading stages.</p>
+</div>
+
+<!-- Control Action Cards Grid -->
+<div class="grid-4" style="margin-bottom: 2.5rem;">
+    <div class="glass-card">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--primary);">1. Extract Data</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Download raw CSV statistics from PSA OpenSTAT API under rate-limit rules.</p>
+        <form method="POST" action="{% url 'pipeline' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="extract">
+            <button type="submit" class="btn btn-secondary" style="width: 100%;">📥 Run Extraction</button>
+        </form>
+    </div>
+
+    <div class="glass-card">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #a855f7;">2. Transform & Validate</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Melt wide tables, extract years/periods, validate quality score & Z-scores.</p>
+        <form method="POST" action="{% url 'pipeline' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="transform">
+            <button type="submit" class="btn btn-secondary" style="width: 100%;">🔄 Run Transformation</button>
+        </form>
+    </div>
+
+    <div class="glass-card">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #4ade80;">3. Load to Database</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Bulk insert clean, standardized records into PostgreSQL warehouse.</p>
+        <form method="POST" action="{% url 'pipeline' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="load">
+            <button type="submit" class="btn btn-secondary" style="width: 100%;">💾 Run Loader</button>
+        </form>
+    </div>
+
+    <div class="glass-card" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(14, 165, 233, 0.08);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: #fff;">Full Pipeline Run</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">Execute end-to-end Extract ➔ Transform ➔ Validate ➔ Load automatically.</p>
+        <form method="POST" action="{% url 'pipeline' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="all">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">🚀 Execute Full Pipeline</button>
+        </form>
+    </div>
+</div>
+
+<!-- Execution Log Output Panel -->
+<div class="glass-card">
+    <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Execution Console Logs</h2>
+    {% if logs %}
+        <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid var(--card-border); border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.875rem; color: #38bdf8; max-height: 400px; overflow-y: auto;">
+            {% for line in logs %}
+                <div>&gt; {{ line }}</div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Click any action button above to execute ETL operations and view live execution logs.</p>
+    {% endif %}
+</div>
+{% endblock %}
