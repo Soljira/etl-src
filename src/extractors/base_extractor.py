@@ -31,8 +31,8 @@ class BaseExtractor(ABC):
         })
         
         retries = Retry(
-            total=5,
-            backoff_factor=1,
+            total=3,
+            backoff_factor=1.5,
             status_forcelist=[429, 500, 502, 503, 504]
         )
         adapter = HTTPAdapter(max_retries=retries)
@@ -63,7 +63,7 @@ class BaseExtractor(ABC):
         logger.info(f"Downloading {url} to {filepath}")
         
         try:
-            response = self.session.get(url, stream=True, timeout=30)
+            response = self.session.get(url, stream=True, timeout=(10, 30))
             response.raise_for_status()
             
             with open(filepath, 'wb') as f:
@@ -85,7 +85,7 @@ class BaseExtractor(ABC):
         
         logger.info(f"Fetching JSON from {url}")
         try:
-            response = self.session.get(url, params=params, timeout=30)
+            response = self.session.get(url, params=params, timeout=(10, 30))
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:

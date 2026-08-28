@@ -155,7 +155,7 @@ class PsaExtractor(BaseExtractor):
         logger.info("Downloading table: %s", table_path)
 
         try:
-            response = self.session.post(url, json=payload, timeout=60)
+            response = self.session.post(url, json=payload, timeout=(15, 60))
             if response.status_code == 403:
                 # Some tables forbid bulk downloads entirely — skip gracefully
                 logger.warning(
