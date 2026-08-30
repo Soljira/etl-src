@@ -3,93 +3,116 @@
 {% block title %}Dashboard - Open Data PH ETL{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem;">Pipeline Overview & Metrics</h1>
-    <p style="color: var(--text-muted);">Real-time metrics for PostgreSQL data warehouse and local extraction status.</p>
+<div class="mb-4">
+    <h1 class="display-6 fw-bold mb-2">Pipeline Overview & Metrics</h1>
+    <!-- <p class="text-muted">Real-time metrics for PostgreSQL data warehouse and local extraction status.</p> -->
 </div>
 
 <!-- Stat Cards -->
-<div class="grid-4" style="margin-bottom: 2.5rem;">
-    <div class="card">
-        <div style="color: var(--text-muted); font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">System Status</div>
-        <div style="font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            {% if db_connected %}
-                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-green);"></span> Connected
-            {% else %}
-                <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-red);"></span> Disconnected
-            {% endif %}
+<div class="row g-4 mb-5">
+    <!-- Status -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card p-4">
+            <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-2"><i class="bi bi-activity"></i> System Status</div>
+            <div class="fs-4 fw-bold d-flex align-items-center gap-2">
+                {% if db_connected %}
+                    <span class="d-inline-block rounded-circle" style="width: 12px; height: 12px; background-color: #16a34a;"></span> Connected
+                {% else %}
+                    <span class="d-inline-block rounded-circle" style="width: 12px; height: 12px; background-color: #dc2626;"></span> Disconnected
+                {% endif %}
+            </div>
+            <div class="small text-muted mt-2">PostgreSQL Warehouse</div>
         </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">PostgreSQL Warehouse</div>
     </div>
 
-    <div class="card">
-        <div style="color: var(--text-muted); font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Total Observations</div>
-        <div style="font-size: 2.2rem; font-weight: 800; color: black; margin-top: 0.2rem;">{{ total_observations|default:0 }}</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Normalized rows stored</div>
+    <!-- Observations -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card p-4">
+            <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-2"><i class="bi bi-list-columns-reverse"></i> Total Observations</div>
+            <div class="display-6 fw-bold text-dark">{{ total_observations|default:0 }}</div>
+            <div class="small text-muted mt-2">Normalized rows stored</div>
+        </div>
     </div>
 
-    <div class="card">
-        <div style="color: var(--text-muted); font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Active Datasets</div>
-        <div style="font-size: 2.2rem; font-weight: 800; margin-top: 0.2rem;">{{ total_datasets|default:0 }}</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">PSA OpenSTAT tables</div>
+    <!-- Datasets -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card p-4">
+            <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-2"><i class="bi bi-file-earmark-bar-graph"></i> Active Datasets</div>
+            <div class="display-6 fw-bold text-dark">{{ total_datasets|default:0 }}</div>
+            <div class="small text-muted mt-2">PSA OpenSTAT tables</div>
+        </div>
     </div>
 
-    <div class="card">
-        <div style="color: var(--text-muted); font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Domain Categories</div>
-        <div style="font-size: 2.2rem; font-weight: 800; color: black; margin-top: 0.2rem;">{{ total_categories|default:0 }}</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Agriculture, Environment, Pop, Mining</div>
+    <!-- Categories -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card p-4">
+            <div class="text-muted small fw-semibold text-uppercase tracking-wide mb-2"><i class="bi bi-collection"></i> Domain Categories</div>
+            <div class="display-6 fw-bold text-dark">{{ total_categories|default:0 }}</div>
+            <div class="small text-muted mt-2">Agriculture, Pop, Mining, etc.</div>
+        </div>
     </div>
 </div>
 
 <!-- Main Content Grid -->
-<div class="grid-3">
+<div class="row g-4">
     <!-- Category Breakdown -->
-    <div class="card" style="grid-column: span 2;">
-        <h2 style="font-size: 1.3rem; margin-bottom: 1.25rem;">Category Breakdown</h2>
-        {% if category_stats %}
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 0.875rem;">
-                        <th style="padding: 0.75rem 0;">Category Name</th>
-                        <th style="padding: 0.75rem 0; text-align: right;">Observations Count</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cat in category_stats %}
-                        <tr style="border-bottom: 1px solid var(--card-border);">
-                            <td style="padding: 1rem 0; font-weight: 500;">
-                                <a href="{% url 'observations' %}?category={{ cat.category }}" style="color: var(--primary); text-decoration: none;">
-                                    {{ cat.category }}
-                                </a>
-                            </td>
-                            <td style="padding: 1rem 0; text-align: right; font-weight: 700; color: var(--text-main);">
-                                {{ cat.count }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p style="color: var(--text-muted); padding: 2rem 0; text-align: center;">No observations loaded in the database yet.</p>
-        {% endif %}
+    <div class="col-lg-8">
+        <div class="card p-4">
+            <h2 class="h4 mb-4"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Category Breakdown</h2>
+            {% if category_stats %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Category Name</th>
+                                <th class="text-end">Observations Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in category_stats %}
+                                <tr>
+                                    <td class="py-3 fw-medium">
+                                        <a href="{% url 'observations' %}?category={{ cat.category }}" class="text-decoration-none text-primary">
+                                            {{ cat.category }}
+                                        </a>
+                                    </td>
+                                    <td class="py-3 text-end fw-bold text-dark">
+                                        {{ cat.count }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                    <p class="mb-0">No observations loaded in the database yet.</p>
+                </div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Quick Actions Panel -->
-    <div class="card">
-        <h2 style="font-size: 1.3rem; margin-bottom: 1.25rem;">Pipeline Quick Actions</h2>
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
-            <a href="{% url 'pipeline' %}" class="btn btn-primary" style="justify-content: flex-start;">
-                Open Pipeline Runner
-            </a>
-            <a href="{% url 'observations' %}" class="btn btn-secondary" style="justify-content: flex-start;">
-                Explore Observations Data
-            </a>
-        </div>
-        
-        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--card-border);">
-            <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;">Downloaded Raw Files:</div>
-            <div style="font-size: 1.25rem; font-weight: 700;">{{ raw_files_count }} CSV Files</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Location: <code>data/raw/psa/</code></div>
+    <div class="col-lg-4">
+        <div class="card p-4">
+            <h2 class="h4 mb-4"></i>Quick Actions</h2>
+            <div class="d-grid gap-3">
+                <a href="{% url 'pipeline' %}" class="btn btn-primary text-start">
+                    <i class="bi bi-play-circle me-2"></i> Open Pipeline Runner
+                </a>
+                <a href="{% url 'observations' %}" class="btn btn-secondary text-start">
+                    <i class="bi bi-search me-2"></i> Explore Observations
+                </a>
+            </div>
+            
+            <hr class="my-4 text-muted">
+            
+            <div>
+                <div class="small text-muted mb-2">Downloaded Raw Files:</div>
+                <div class="fs-4 fw-bold text-dark mb-1"><i class="bi bi-filetype-csv text-success me-2"></i>{{ raw_files_count }} CSV Files</div>
+                <div class="small text-muted">Location: <code>data/raw/psa/</code></div>
+            </div>
         </div>
     </div>
 </div>

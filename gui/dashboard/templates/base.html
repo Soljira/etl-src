@@ -4,225 +4,168 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Open Data PH - ETL Web GUI{% endblock %}</title>
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
     <style>
+        /* Premium Bootstrap Overrides */
         :root {
-            --bg-main: #f8fafc;
-            --card-bg: #ffffff;
-            --card-border: #e2e8f0;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --primary: #0284c7;
-            --primary-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-            --accent-green: #16a34a;
-            --accent-amber: #d97706;
-            --accent-red: #dc2626;
-            --radius-lg: 12px;
-            --radius-md: 8px;
+            --bs-font-sans-serif: 'Inter', sans-serif;
+            --bs-body-bg: #f8fafc;
+            --bs-body-color: #0f172a;
+            --bs-primary: #0284c7;
+            --bs-primary-rgb: 2, 132, 199;
+            --bs-secondary: #f1f5f9;
+            --bs-border-color: #e2e8f0;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Navbar */
-        nav {
-            background: #ffffff;
-            border-bottom: 1px solid var(--card-border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .nav-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 1.5rem;
-            list-style: none;
-        }
-
-        .nav-links a {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            padding: 0.5rem 0.8rem;
-            border-radius: 8px;
-        }
-
-        .nav-links a:hover, .nav-links a.active {
-            color: var(--primary);
-            background: #f0f9ff;
-        }
-
-        /* Main Container */
-        main {
-            max-width: 1280px;
-            margin: 2rem auto;
-            padding: 0 2rem;
-            width: 100%;
-            flex: 1;
-        }
-
-        /* Simple Cards (formerly glass-card) */
-        .glass-card, .card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--radius-lg);
-            padding: 1.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .glass-card:hover, .card:hover {
-            border-color: #cbd5e1;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Alerts */
-        .messages {
-            margin-bottom: 1.5rem;
-            list-style: none;
-        }
-
-        .alert {
-            padding: 1rem 1.25rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: #dcfce7;
-            border: 1px solid #bbf7d0;
-            color: #166534;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s ease;
-            text-decoration: none;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #fff;
-            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.2);
-        }
-
-        .btn-primary:hover {
-            background: #0369a1;
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: #f1f5f9;
-            color: var(--text-main);
-            border: 1px solid var(--card-border);
-        }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-
-        /* Typography & Grid */
-        h1, h2, h3 {
+        h1, h2, h3, h4, h5, h6, .navbar-brand {
             font-family: 'Outfit', sans-serif;
             font-weight: 700;
         }
 
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
+        .navbar-brand {
+            font-weight: 800;
+            color: var(--bs-primary) !important;
+            font-size: 1.4rem;
         }
 
-        .grid-4 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1.5rem;
+        .navbar {
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--bs-border-color);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
         }
 
-        /* Footer */
+        .nav-link {
+            font-weight: 500;
+            color: #64748b !important;
+            padding: 0.5rem 1rem !important;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--bs-primary) !important;
+            background-color: #f0f9ff;
+        }
+
+        /* Glassmorphism Cards */
+        .card {
+            background: #ffffff;
+            border: 1px solid var(--bs-border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            height: 100%;
+        }
+
+        .card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Vibrant Buttons */
+        .btn {
+            font-weight: 600;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border: none;
+            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -2px rgba(2, 132, 199, 0.35);
+        }
+
+        .btn-secondary {
+            background-color: var(--bs-secondary);
+            border: 1px solid var(--bs-border-color);
+            color: var(--bs-body-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+            border-color: #cbd5e1;
+            color: var(--bs-body-color);
+        }
+
+        /* Tables */
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .table th {
+            border-bottom-width: 1px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        .table td {
+            vertical-align: middle;
+            color: #334155;
+        }
+
         footer {
-            border-top: 1px solid var(--card-border);
-            padding: 1.5rem 2rem;
-            text-align: center;
-            color: var(--text-muted);
+            border-top: 1px solid var(--bs-border-color);
+            color: #64748b;
             font-size: 0.875rem;
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
-    <nav>
-        <div class="nav-container">
-            <a href="{% url 'index' %}" class="logo">
-                Open Data PH ETL
+<body class="d-flex flex-column min-vh-100">
+    <nav class="navbar navbar-expand-lg sticky-top py-3">
+        <div class="container-xl">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'index' %}">
+                <i class="bi bi-database-fill"></i> Open Data PH ETL
             </a>
-            <ul class="nav-links">
-                <li><a href="{% url 'index' %}" class="{% if request.resolver_match.url_name == 'index' %}active{% endif %}">Dashboard</a></li>
-                <li><a href="{% url 'observations' %}" class="{% if request.resolver_match.url_name == 'observations' %}active{% endif %}">Data Explorer</a></li>
-                <li><a href="{% url 'pipeline' %}" class="{% if request.resolver_match.url_name == 'pipeline' %}active{% endif %}">Pipeline Control</a></li>
-            </ul>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav gap-2">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'index' %}active{% endif %}" href="{% url 'index' %}">
+                            <i class="bi bi-grid-1x2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'observations' %}active{% endif %}" href="{% url 'observations' %}">
+                            <i class="bi bi-search"></i> Data Explorer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'pipeline' %}active{% endif %}" href="{% url 'pipeline' %}">
+                            <i class="bi bi-play-circle"></i> Pipeline Control
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <main>
+    <main class="container-xl flex-grow-1 py-4">
         {% if messages %}
-            <div class="messages">
+            <div class="mb-4">
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
                         {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             </div>
@@ -231,9 +174,13 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer>
-        <!-- <p>ETL Pipeline Framework for Open Data Philippines Datasets &bull; Built with Django & PostgreSQL</p> -->
-        <p>ETL Pipeline Framework for Open Data Philippines Datasets &bull; Created by Soljira 2026</p>
+    <footer class="py-4 text-center mt-auto bg-white">
+        <div class="container-xl">
+            <p class="mb-0">ETL Pipeline Framework for Open Data Philippines Datasets &bull; Created by Soljira 2026</p>
+        </div>
     </footer>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

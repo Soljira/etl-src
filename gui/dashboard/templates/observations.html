@@ -3,17 +3,17 @@
 {% block title %}Data Explorer - Open Data PH ETL{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem;">Data Explorer</h1>
-    <p style="color: var(--text-muted);">Query, search, and filter normalized observations in PostgreSQL warehouse.</p>
+<div class="mb-4">
+    <h1 class="display-6 fw-bold mb-2">Data Explorer</h1>
+    <p class="text-muted">Query, search, and filter normalized observations in PostgreSQL warehouse.</p>
 </div>
 
 <!-- Filter Controls Bar -->
-<div class="card" style="margin-bottom: 2rem;">
-    <form method="GET" action="{% url 'observations' %}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 1rem; align-items: end;">
-        <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem;">Category</label>
-            <select name="category" style="width: 100%; padding: 0.65rem 0.8rem; background: #fff; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px;">
+<div class="card p-4 mb-4">
+    <form method="GET" action="{% url 'observations' %}" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold text-muted">Category</label>
+            <select name="category" class="form-select">
                 <option value="">All Categories</option>
                 {% for cat in categories %}
                     <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -21,9 +21,9 @@
             </select>
         </div>
 
-        <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem;">Year</label>
-            <select name="year" style="width: 100%; padding: 0.65rem 0.8rem; background: #fff; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px;">
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold text-muted">Year</label>
+            <select name="year" class="form-select">
                 <option value="">All Years</option>
                 {% for yr in years %}
                     <option value="{{ yr }}" {% if selected_year == yr|stringformat:"i" %}selected{% endif %}>{{ yr }}</option>
@@ -31,113 +31,126 @@
             </select>
         </div>
 
-        <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem;">Dataset ID</label>
-            <input type="text" name="dataset_id" value="{{ selected_dataset_id }}" placeholder="e.g. 0012E4EVCP0" style="width: 100%; padding: 0.65rem 0.8rem; background: #fff; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px;">
+        <div class="col-md-2">
+            <label class="form-label small fw-semibold text-muted">Dataset ID</label>
+            <input type="text" name="dataset_id" value="{{ selected_dataset_id }}" class="form-control" placeholder="e.g. 0012E4EVCP0">
         </div>
 
-        <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.4rem;">Search Entity / Metric</label>
-            <input type="text" name="search" value="{{ selected_search }}" placeholder="e.g. Region I, Palay" style="width: 100%; padding: 0.65rem 0.8rem; background: #fff; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px;">
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold text-muted">Search Entity / Metric</label>
+            <input type="text" name="search" value="{{ selected_search }}" class="form-control" placeholder="e.g. Region I, Palay">
         </div>
 
-        <div style="display: flex; gap: 0.5rem;">
-            <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.25rem;">Filter</button>
-            <a href="{% url 'observations' %}" class="btn btn-secondary" style="padding: 0.65rem 1rem;">Reset</a>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
+            <a href="{% url 'observations' %}" class="btn btn-secondary flex-shrink-0" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
         </div>
     </form>
 </div>
 
 <!-- Table -->
-<div class="card" style="padding: 1rem; overflow-x: auto;">
-
+<div class="card p-0 overflow-hidden">
     {% if table_missing %}
-        <div style="padding: 3rem; text-align: center; color: var(--text-muted);">
-            <div style="font-size: 2rem; margin-bottom: 1rem;">📭</div>
-            <p style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem;">No data loaded yet</p>
-            <p style="font-size: 0.875rem;">The <code style="color: var(--primary);">observations</code> table doesn't exist in PostgreSQL.<br>
-            Go to <a href="{% url 'pipeline' %}" style="color: var(--primary);">Pipeline Control Center</a> and run <strong>Load to Database</strong> first.</p>
+        <div class="p-5 text-center text-muted">
+            <div class="display-1 mb-3">📭</div>
+            <h3 class="h5 fw-bold text-dark mb-2">No data loaded yet</h3>
+            <p class="small">The <code class="text-primary">observations</code> table doesn't exist in PostgreSQL.<br>
+            Go to <a href="{% url 'pipeline' %}" class="text-primary text-decoration-none">Pipeline Control Center</a> and run <strong>Load to Database</strong> first.</p>
         </div>
     {% else %}
-        <div style="padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.9rem;">
-            <div>Total Results Found: <strong style="color: var(--text-main);">{{ total_count }}</strong> observations</div>
+        <div class="p-3 d-flex justify-content-between align-items-center bg-light border-bottom text-muted small">
+            <div>Total Results Found: <strong class="text-dark">{{ total_count }}</strong> observations</div>
             <div>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
         </div>
 
-        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
-            <thead>
-                <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted);">
-                    <th style="padding: 0.8rem;">ID</th>
-                    <th style="padding: 0.8rem;">Category</th>
-                    <th style="padding: 0.8rem;">Dataset ID</th>
-                    <th style="padding: 0.8rem;">Entity Name</th>
-                    <th style="padding: 0.8rem;">Variable Name</th>
-                    <th style="padding: 0.8rem;">Year</th>
-                    <th style="padding: 0.8rem;">Period</th>
-                    <th style="padding: 0.8rem; text-align: right;">Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for obs in page_obj %}
-                    <tr style="border-bottom: 1px solid var(--card-border);">
-                        <td style="padding: 0.8rem; color: var(--text-muted);">{{ obs.id }}</td>
-                        <td style="padding: 0.8rem;"><span style="background: #e0f2fe; color: var(--primary); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">{{ obs.category }}</span></td>
-                        <td style="padding: 0.8rem; font-family: monospace; color: #7e22ce;">{{ obs.dataset_id }}</td>
-                        <td style="padding: 0.8rem; font-weight: 500;">{{ obs.entity_name }}</td>
-                        <td style="padding: 0.8rem;">{{ obs.variable_name }}</td>
-                        <td style="padding: 0.8rem;">{{ obs.year|default:"-" }}</td>
-                        <td style="padding: 0.8rem; color: var(--text-muted);">{{ obs.period|default:"-" }}</td>
-                        <td style="padding: 0.8rem; text-align: right; font-weight: 700; color: #16a34a;">{{ obs.value|floatformat:2 }}</td>
-                    </tr>
-                {% empty %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light">
                     <tr>
-                        <td colspan="8" style="padding: 3rem; text-align: center; color: var(--text-muted);">
-                            No observations matching your query parameters.
-                        </td>
+                        <th class="ps-3">ID</th>
+                        <th>Category</th>
+                        <th>Dataset ID</th>
+                        <th>Entity Name</th>
+                        <th>Variable Name</th>
+                        <th>Year</th>
+                        <th>Period</th>
+                        <th class="text-end pe-3">Value</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for obs in page_obj %}
+                        <tr>
+                            <td class="ps-3 text-muted small">{{ obs.id }}</td>
+                            <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ obs.category }}</span></td>
+                            <td class="font-monospace text-purple small">{{ obs.dataset_id }}</td>
+                            <td class="fw-medium">{{ obs.entity_name }}</td>
+                            <td>{{ obs.variable_name }}</td>
+                            <td>{{ obs.year|default:"-" }}</td>
+                            <td class="text-muted">{{ obs.period|default:"-" }}</td>
+                            <td class="text-end pe-3 fw-bold text-success">{{ obs.value|floatformat:2 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="p-5 text-center text-muted">
+                                No observations matching your query parameters.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         <!-- Pagination Controls -->
         {% if page_obj.has_other_pages %}
-            <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.35rem; margin-top: 1.5rem; padding: 0.5rem;">
-                {# First + Prev #}
-                {% if page_obj.has_previous %}
-                    <a href="?page=1&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;" title="First page">&laquo;</a>
-                    <a href="?page={{ page_obj.previous_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;">&lsaquo; Prev</a>
-                {% else %}
-                    <span class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; opacity: 0.4; cursor: default;">&laquo;</span>
-                    <span class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; opacity: 0.4; cursor: default;">&lsaquo; Prev</span>
-                {% endif %}
-
-                {# Page Numbers with Ellipsis #}
-                {% for i in page_obj.paginator.page_range %}
-                    {% if i == page_obj.number %}
-                        <span class="btn btn-primary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; min-width: 2.2rem; text-align: center;">{{ i }}</span>
-                    {% elif i == 1 or i == page_obj.paginator.num_pages or i >= page_obj.number|add:"-3" and i <= page_obj.number|add:"3" %}
-                        <a href="?page={{ i }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; min-width: 2.2rem; text-align: center;">{{ i }}</a>
-                    {% elif i == 2 or i == page_obj.paginator.num_pages|add:"-1" %}
-                        <span style="padding: 0.4rem 0.3rem; color: var(--text-muted); font-size: 0.85rem;">…</span>
+            <div class="p-3 bg-light border-top d-flex flex-column align-items-center gap-3">
+                <ul class="pagination pagination-sm mb-0">
+                    {# First + Prev #}
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" title="First page">&laquo;</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}">&lsaquo; Prev</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                        <li class="page-item disabled"><span class="page-link">&lsaquo; Prev</span></li>
                     {% endif %}
-                {% endfor %}
 
-                {# Next + Last #}
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;">Next &rsaquo;</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;" title="Last page">&raquo;</a>
-                {% else %}
-                    <span class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; opacity: 0.4; cursor: default;">Next &rsaquo;</span>
-                    <span class="btn btn-secondary" style="padding: 0.4rem 0.7rem; font-size: 0.85rem; opacity: 0.4; cursor: default;">&raquo;</span>
-                {% endif %}
-            </div>
+                    {# Page Numbers with Ellipsis #}
+                    {% for i in page_obj.paginator.page_range %}
+                        {% if i == page_obj.number %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                        {% elif i == 1 or i == page_obj.paginator.num_pages or i >= page_obj.number|add:"-3" and i <= page_obj.number|add:"3" %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ i }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}">{{ i }}</a>
+                            </li>
+                        {% elif i == 2 or i == page_obj.paginator.num_pages|add:"-1" %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
 
-            {# Go to Page Input #}
-            <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 0.75rem;">
-                <label style="font-size: 0.85rem; color: var(--text-muted);">Go to page:</label>
-                <input type="number" id="goToPageInput" min="1" max="{{ page_obj.paginator.num_pages }}" value="{{ page_obj.number }}" style="width: 5rem; padding: 0.4rem 0.6rem; border: 1px solid var(--card-border); border-radius: 6px; text-align: center; font-size: 0.85rem;">
-                <button onclick="goToPage()" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Go</button>
-                <span style="font-size: 0.8rem; color: var(--text-muted);">of {{ page_obj.paginator.num_pages }}</span>
+                    {# Next + Last #}
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}">Next &rsaquo;</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&category={{ selected_category }}&dataset_id={{ selected_dataset_id }}&year={{ selected_year }}&search={{ selected_search }}" title="Last page">&raquo;</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">Next &rsaquo;</span></li>
+                        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                    {% endif %}
+                </ul>
+
+                {# Go to Page Input #}
+                <div class="d-flex align-items-center gap-2">
+                    <label class="small text-muted mb-0">Go to page:</label>
+                    <input type="number" id="goToPageInput" class="form-control form-control-sm text-center" min="1" max="{{ page_obj.paginator.num_pages }}" value="{{ page_obj.number }}" style="width: 5rem;">
+                    <button onclick="goToPage()" class="btn btn-sm btn-primary">Go</button>
+                    <span class="small text-muted">of {{ page_obj.paginator.num_pages }}</span>
+                </div>
             </div>
 
             <script>
@@ -158,5 +171,7 @@
         {% endif %}
     {% endif %}
 </div>
-
+<style>
+.text-purple { color: #7e22ce; }
+</style>
 {% endblock %}
