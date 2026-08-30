@@ -7,3 +7,4 @@ services:
   web:
     volumes:
       - ./data_test:/app/data
+  whodb: {}

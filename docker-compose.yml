@@ -50,6 +50,16 @@ services:
     volumes:
       - .:/app              # Mount entire project so code changes are live
       - ./data:/app/data
+  whodb:
+    image: clidey/whodb:latest
+    # container_name: whodb
+    ports:
+      - "${WHODB_PORT:-8080}:8080"
+    environment:
+      WHODB_LOG_LEVEL: info
+      WHODB_USERNAME: "user"
+      WHODB_PASSWORD: "password"
+    restart: unless-stopped
 
 volumes:
   pgdata:
