@@ -9,7 +9,7 @@ from .base_extractor import BaseExtractor
 
 logger = logging.getLogger(__name__)
 
-# Rate limit: max 10 requests per 10 seconds SABI MISMO NG OPENSTAT API. Use 1.1s between requests to be safe
+# Rate limit: max 10 requests per 10 seconds SABI MISMO NG OPENSTAT API. Use 1.1s between requests para safe
 PSA_RATE_LIMIT = 1.1
 
 # Base URL for the OpenSTAT PX-Web API

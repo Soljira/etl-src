@@ -5,6 +5,29 @@ from typing import Tuple, Dict, Any
 
 logger = logging.getLogger(__name__)
 
+
+"""
+Algo:
+validate() runs three checks in sequence, then computes a single Data Quality Score (0–100) summarizing how trustworthy 
+the batch of data is. It returns two things: the cleaned DataFrame, and a metrics dictionary full of warnings/stats i 
+can log or display.
+
+Your DataValidator runs three layers of checks — dropping fundamentally broken rows (completeness), fixing individually 
+impossible values like negative populations or invalid years (consistency), and statistically flagging (but not removing) 
+unusually extreme values (anomaly detection) — then compresses all of this into a single 0–100 quality score that becomes
+your data_quality_score field, letting anyone querying your API judge how trustworthy a given batch of data is at a glance.
+
+1. Completeness Check; drops any row missing a critical field (in critical_columns)
+2. Consistency check
+    - Year
+        - If a year is before 1900 or after 2100 (likely a parsing bug from your transformer's regex), it's clearly 
+        wrong, but instead of deleting the whole row, it just nullifies the year field and keeps the rest of the data.
+    - Population can't be negative
+    - Statistical Anomaly (Z-score)
+        - unlike the consistency checks, outliers are not removed or nullified — they're just counted and logged. The 
+        reasoning is probably: a Z-score outlier might be a real, legitimate extreme value
+3. Quality Score Calculation
+"""
 class DataValidator:
     """
     Validates DataFrames that have been transformed into the Unified Schema.
@@ -12,6 +35,7 @@ class DataValidator:
     """
     
     def __init__(self):
+        # if any of them is missing, the row is useless and gets dropped
         self.critical_columns = ["dataset_id", "category", "entity_name", "variable_name", "value"]
         
     def validate(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
