@@ -8,6 +8,23 @@
     <p class="text-muted">Trigger automated extraction, transformation, validation, and loading stages.</p>
 </div>
 
+<!-- Data Source Selector -->
+<div class="card p-4 mb-4">
+    <h3 class="h5 mb-3"><i class="bi bi-database text-primary me-2"></i>Data Source</h3>
+    <ul class="nav nav-pills mb-0" id="source-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-source="psa" type="button" onclick="switchSource('psa')">PSA OpenSTAT</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-source="bettergov" type="button" onclick="switchSource('bettergov')">BetterGov</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-source="all" type="button" onclick="switchSource('all')">Both Sources</button>
+        </li>
+    </ul>
+    <input type="hidden" id="selected-source" value="psa">
+</div>
+
 <!-- Category Selection -->
 <div class="card p-4 mb-4">
     <div class="d-flex justify-content-between align-items-baseline mb-2">
@@ -18,15 +35,32 @@
         </div>
     </div>
     <p class="small text-muted mb-3">Select which categories to include during Extraction. <em>(Extracting all may take a long time due to API limits)</em>.</p>
-    
-    <div class="p-3 bg-light border rounded overflow-auto" style="max-height: 220px;">
+
+    <!-- PSA Categories -->
+    <div id="psa-categories" class="p-3 bg-light border rounded overflow-auto" style="max-height: 220px;">
         <div class="row g-3">
             {% for cat in categories_list %}
             <div class="col-md-6 col-lg-4">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="categories" value="{{ cat.code }}" id="cat_{{ cat.code }}" {% if cat.selected %}checked{% endif %}>
+                    <input class="form-check-input cat-checkbox cat-psa" type="checkbox" name="categories" value="{{ cat.code }}" id="cat_{{ cat.code }}" {% if cat.selected %}checked{% endif %}>
                     <label class="form-check-label small text-dark" for="cat_{{ cat.code }}">
                         <strong>{{ cat.code }}</strong> - {{ cat.label }}
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- BetterGov Categories (hidden by default) -->
+    <div id="bettergov-categories" class="p-3 bg-light border rounded overflow-auto d-none" style="max-height: 220px;">
+        <div class="row g-3">
+            {% for cat in bettergov_categories_list %}
+            <div class="col-md-6 col-lg-4">
+                <div class="form-check">
+                    <input class="form-check-input cat-checkbox cat-bettergov" type="checkbox" name="categories" value="{{ cat.code }}" id="bgcat_{{ forloop.counter }}" {% if cat.selected %}checked{% endif %}>
+                    <label class="form-check-label small text-dark" for="bgcat_{{ forloop.counter }}">
+                        {{ cat.label }}
                     </label>
                 </div>
             </div>
@@ -40,8 +74,8 @@
     <div class="col-md-6 col-lg-3">
         <div class="card p-4 d-flex flex-column">
             <h3 class="h5 text-primary mb-2">1. Extract Data</h3>
-            <p class="small text-muted mb-4 flex-grow-1">Download raw CSV statistics from PSA OpenSTAT.</p>
-            <button id="btn-extract" class="btn btn-secondary w-100" onclick="runAction('extract')"></i>Run Extraction</button>
+            <p class="small text-muted mb-4 flex-grow-1">Download raw data files from the selected source.</p>
+            <button id="btn-extract" class="btn btn-secondary w-100" onclick="runAction('extract')">Run Extraction</button>
         </div>
     </div>
 
@@ -49,7 +83,7 @@
         <div class="card p-4 d-flex flex-column">
             <h3 class="h5 text-primary mb-2">2. Transform &amp; Validate</h3>
             <p class="small text-muted mb-4 flex-grow-1">Melt wide tables, extract years/periods, validate quality score &amp; Z-scores.</p>
-            <button id="btn-transform" class="btn btn-secondary w-100" onclick="runAction('transform')"></i>Run Transformation</button>
+            <button id="btn-transform" class="btn btn-secondary w-100" onclick="runAction('transform')">Run Transformation</button>
         </div>
     </div>
 
@@ -57,13 +91,13 @@
         <div class="card p-4 d-flex flex-column">
             <h3 class="h5 text-primary mb-2">3. Load to Database</h3>
             <p class="small text-muted mb-4 flex-grow-1">Bulk insert clean, standardized records into PostgreSQL warehouse.</p>
-            <button id="btn-load" class="btn btn-secondary w-100" onclick="runAction('load')"></i>Run Loader</button>
+            <button id="btn-load" class="btn btn-secondary w-100" onclick="runAction('load')">Run Loader</button>
         </div>
     </div>
 
     <div class="col-md-6 col-lg-3">
         <div class="card p-4 d-flex flex-column border-info" style="background-color: #f0f9ff;">
-            <h3 class="h5 text-info-emphasis mb-2"></i>Full Pipeline</h3>
+            <h3 class="h5 text-info-emphasis mb-2">Full Pipeline</h3>
             <p class="small text-muted mb-4 flex-grow-1">Execute the whole ETL process automatically.</p>
             <button id="btn-all" class="btn btn-primary w-100" onclick="runAction('all')">Execute Pipeline</button>
         </div>
@@ -115,8 +149,31 @@ function setRunning(yes) {
     }
 }
 
+function switchSource(source) {
+    document.getElementById('selected-source').value = source;
+    // Update pill buttons
+    document.querySelectorAll('#source-tabs .nav-link').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-source') === source);
+    });
+    // Show/hide category lists
+    const psaEl = document.getElementById('psa-categories');
+    const bgEl = document.getElementById('bettergov-categories');
+    if (source === 'psa') {
+        psaEl.classList.remove('d-none'); bgEl.classList.add('d-none');
+    } else if (source === 'bettergov') {
+        psaEl.classList.add('d-none'); bgEl.classList.remove('d-none');
+    } else {
+        psaEl.classList.remove('d-none'); bgEl.classList.remove('d-none');
+    }
+}
+
 function selectAll(check) {
-    document.querySelectorAll('input[name="categories"]').forEach(cb => cb.checked = check);
+    // Only toggle visible checkboxes
+    const source = document.getElementById('selected-source').value;
+    let selector = '.cat-checkbox';
+    if (source === 'psa') selector = '.cat-psa';
+    else if (source === 'bettergov') selector = '.cat-bettergov';
+    document.querySelectorAll(selector).forEach(cb => cb.checked = check);
 }
 
 function setStatus(text, bgClass) {
@@ -206,9 +263,15 @@ function runAction(action) {
     setStatus('Running…', 'text-bg-info');
     appendLine('INFO', `Starting: ${action}…`);
 
-    const selectedCategories = Array.from(document.querySelectorAll('input[name="categories"]:checked')).map(cb => cb.value);
-    
-    let requestBody = `action=${encodeURIComponent(action)}`;
+    const source = document.getElementById('selected-source').value;
+
+    // Only collect categories from the active source panel
+    let catSelector = 'input[name="categories"]:checked';
+    if (source === 'psa') catSelector = '.cat-psa:checked';
+    else if (source === 'bettergov') catSelector = '.cat-bettergov:checked';
+    const selectedCategories = Array.from(document.querySelectorAll(catSelector)).map(cb => cb.value);
+
+    let requestBody = `action=${encodeURIComponent(action)}&source=${encodeURIComponent(source)}`;
     selectedCategories.forEach(cat => {
         requestBody += `&categories=${encodeURIComponent(cat)}`;
     });

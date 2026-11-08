@@ -161,7 +161,8 @@ def index(request):
         logger.error("Error fetching dashboard stats: %s", e)
         messages.error(request, f"Database connection warning: {e}")
 
-    raw_files = glob.glob("data/raw/psa/*.csv")
+    psa_raw_files = glob.glob("data/raw/psa/*.csv")
+    bg_raw_files = glob.glob("data/raw/bettergov/*.csv") + glob.glob("data/raw/bettergov/*.xlsx")
 
     context = {
         "db_connected": db_connected,
@@ -169,7 +170,9 @@ def index(request):
         "total_datasets": total_datasets,
         "total_categories": total_categories,
         "category_stats": category_stats,
-        "raw_files_count": len(raw_files),
+        "raw_files_count": len(psa_raw_files) + len(bg_raw_files),
+        "psa_raw_count": len(psa_raw_files),
+        "bg_raw_count": len(bg_raw_files),
     }
     return render(request, "index.html", context)
 
@@ -236,21 +239,47 @@ def observations(request):
 def pipeline(request):
     """Pipeline Control Center page (just renders the template)."""
     from src.extractors.psa_extractor import TARGET_CATEGORIES
-    
-    # No categories are pre-selected — user must explicitly choose.
-    default_selected = []
-    
-    formatted_categories = [
+
+    # PSA categories (code + label)
+    psa_categories = [
         {
             "code": code,
             "label": label.replace("_", " "),
-            "selected": code in default_selected
+            "selected": False,
         }
         for code, label in TARGET_CATEGORIES.items()
     ]
-    
+
+    # BetterGov categories — fetch live from the API to get dataset counts
+    bettergov_categories = []
+    try:
+        import requests as http_requests
+        resp = http_requests.get(
+            "https://data.bettergov.ph/api/v1/categories", timeout=5
+        )
+        resp.raise_for_status()
+        api_cats = resp.json().get("data", [])
+        bettergov_categories = [
+            {
+                "code": cat["name"],
+                "label": f"{cat['name']} ({cat.get('dataset_count', 0)} datasets)",
+                "selected": False,
+                "dataset_count": cat.get("dataset_count", 0),
+            }
+            for cat in api_cats
+        ]
+    except Exception:
+        # Fallback to a static list if the API is unreachable
+        bettergov_categories = [
+            {"code": name, "label": name, "selected": False, "dataset_count": -1}
+            for name in [
+                "Finance", "Government", "Miscellaneous", "Weather and Climate",
+            ]
+        ]
+
     return render(request, "pipeline.html", {
-        "categories_list": formatted_categories
+        "categories_list": psa_categories,
+        "bettergov_categories_list": bettergov_categories,
     })
 
 
@@ -268,6 +297,7 @@ def pipeline_run(request):
     thread, and immediately returns the run_id so the browser can start polling.
     """
     action = request.POST.get("action", "")
+    source = request.POST.get("source", "psa")
     categories = request.POST.getlist("categories")
     run_id = str(uuid.uuid4())
 
@@ -278,8 +308,12 @@ def pipeline_run(request):
         handler = _attach_handler(run_id)
         try:
             if action == "extract":
-                from scripts.run_psa_extraction import run as run_extraction
-                run_extraction(categories=categories if categories else None)
+                if source == "bettergov":
+                    from scripts.run_bettergov_extraction import run as run_bg
+                    run_bg(categories=categories if categories else None)
+                else:
+                    from scripts.run_psa_extraction import run as run_psa
+                    run_psa(categories=categories if categories else None)
 
             elif action == "transform":
                 from scripts.run_transformers import run as run_transformation
@@ -291,7 +325,10 @@ def pipeline_run(request):
 
             elif action == "all":
                 from scripts.run_full_pipeline import run as run_full
-                run_full(categories=categories if categories else None)
+                run_full(
+                    categories=categories if categories else None,
+                    source=source,
+                )
 
             else:
                 _log(run_id, "ERROR", f"Unknown action: '{action}'")

@@ -22,7 +22,11 @@ def run():
     validator = DataValidator()
     loader = PostgresLoader(engine=engine)
     
-    files = glob.glob("data/processed/psa/*.csv") + glob.glob("data/processed/*.csv")
+    files = (
+        glob.glob("data/processed/psa/*.csv")
+        + glob.glob("data/processed/bettergov/*.csv")
+        + glob.glob("data/processed/*.csv")
+    )
     # Deduplicate while preserving order
     files = list(dict.fromkeys(files))
     
