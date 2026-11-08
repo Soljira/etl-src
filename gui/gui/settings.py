@@ -17,7 +17,17 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-etl-open-data-
 
 DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
+
+# Trust Render's onrender.com domain for CSRF (required for hosted forms)
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CSRF_TRUSTED_ORIGINS",
+        "https://*.onrender.com,http://localhost:8000,http://127.0.0.1:8000",
+    ).split(",")
+    if origin.strip()
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -38,6 +48,11 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# WhiteNoise: serves static files in production without a separate web server.
+# Only loaded when DEBUG=False (i.e. Render/prod).  Docker dev server skips this.
+if not DEBUG:
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 ROOT_URLCONF = "gui.urls"
 
@@ -87,6 +102,13 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+# WhiteNoise compressed static file storage (production only)
+if not DEBUG:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Data directories: use /opt/render/project/src/data on Render, local otherwise
+_DATA_ROOT = os.environ.get("DATA_ROOT", str(BASE_DIR.parent / "data"))
+os.makedirs(_DATA_ROOT, exist_ok=True)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
