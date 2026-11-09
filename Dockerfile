@@ -21,6 +21,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
+RUN python gui/manage.py collectstatic --noinput
+
 # Expose the API port
 EXPOSE 5000
 

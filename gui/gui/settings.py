@@ -11,9 +11,12 @@ load_dotenv(os.path.join(BASE_DIR.parent, ".env"))
 
 # Add parent directory to sys.path so we can import src modules
 import sys
+
 sys.path.insert(0, str(BASE_DIR.parent))
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-etl-open-data-ph-gui-key-2026")
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY", "django-insecure-etl-open-data-ph-gui-key-2026"
+)
 
 DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
 
@@ -41,6 +44,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -75,7 +79,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "gui.wsgi.application"
 
 # Parse DATABASE_URL if available
-db_url = os.environ.get("DATABASE_URL", "postgresql://user:password@localhost:5432/opendata_ph")
+db_url = os.environ.get(
+    "DATABASE_URL", "postgresql://user:password@localhost:5432/opendata_ph"
+)
 # Strip SQLAlchemy driver prefix if present (+pg8000)
 if "+pg8000" in db_url:
     db_url = db_url.replace("+pg8000", "")
@@ -136,3 +142,5 @@ LOGGING = {
         },
     },
 }
+CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
