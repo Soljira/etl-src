@@ -9,11 +9,14 @@ Each run writes to a JSONL file on disk so logs survive container restarts.
 The browser polls /pipeline/logs/ every 500 ms and replays all lines on reload.
 """
 import glob
+import io
 import json
 import logging
 import os
+import pathlib
 import threading
 import uuid
+import zipfile
 import pandas as pd
 from datetime import datetime
 
@@ -21,7 +24,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Count, Q
-from django.http import JsonResponse
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
 
@@ -366,3 +369,97 @@ def pipeline_logs(request):
         return JsonResponse({"error": "Unknown run_id"}, status=404)
 
     return JsonResponse({"logs": entries[since:], "done": done})
+
+
+# ---------------------------------------------------------------------------
+# File download views (serve raw / processed files directly from Django)
+# ---------------------------------------------------------------------------
+
+# Project root is three levels up from this file (gui/dashboard/views.py)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+
+def _safe_data_dir(kind: str) -> pathlib.Path:
+    """Return the absolute path for 'raw' or 'processed' data directory."""
+    if kind not in ("raw", "processed"):
+        raise ValueError("kind must be 'raw' or 'processed'")
+    return pathlib.Path(_PROJECT_ROOT) / "data" / kind
+
+
+@require_GET
+def files_list(request, kind: str):
+    """
+    GET /download/<kind>/
+    Returns JSON: {"zip_url": "...", "count": N, "files": [{"name": ..., "url": ...}]}
+    """
+    try:
+        data_dir = _safe_data_dir(kind)
+    except ValueError:
+        return JsonResponse({"error": "kind must be 'raw' or 'processed'"}, status=400)
+
+    file_list = []
+    if data_dir.exists():
+        for f in sorted(data_dir.rglob("*")):
+            if f.is_file() and not f.name.startswith("."):
+                rel = f.relative_to(data_dir)
+                file_list.append({
+                    "name": str(rel),
+                    "url": f"/download/{kind}/file/{rel}",
+                })
+
+    return JsonResponse({
+        "zip_url": f"/download/{kind}/zip/",
+        "count": len(file_list),
+        "files": file_list,
+    })
+
+
+@require_GET
+def files_zip(request, kind: str):
+    """
+    GET /download/<kind>/zip/
+    Streams a ZIP archive of everything in data/<kind>/.
+    """
+    try:
+        data_dir = _safe_data_dir(kind)
+    except ValueError:
+        return JsonResponse({"error": "kind must be 'raw' or 'processed'"}, status=400)
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        if data_dir.exists():
+            for filepath in sorted(data_dir.rglob("*")):
+                if filepath.is_file() and not filepath.name.startswith("."):
+                    arcname = filepath.relative_to(data_dir)
+                    zf.write(filepath, arcname=arcname)
+    buf.seek(0)
+
+    response = HttpResponse(buf.read(), content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="{kind}_files.zip"'
+    return response
+
+
+@require_GET
+def files_single(request, kind: str, filepath: str):
+    """
+    GET /download/<kind>/file/<filepath>
+    Downloads a single file by relative path inside data/<kind>/.
+    """
+    try:
+        data_dir = _safe_data_dir(kind)
+    except ValueError:
+        return JsonResponse({"error": "kind must be 'raw' or 'processed'"}, status=400)
+
+    # Security: resolve and ensure the path stays inside data_dir
+    target = (data_dir / filepath).resolve()
+    if not str(target).startswith(str(data_dir.resolve())):
+        return JsonResponse({"error": "Invalid path."}, status=400)
+    if not target.exists() or not target.is_file():
+        return JsonResponse({"error": f"File '{filepath}' not found."}, status=404)
+
+    return FileResponse(open(target, "rb"), as_attachment=True, filename=target.name)
+
+
+def api_docs(request):
+    """API Reference documentation page."""
+    return render(request, "api_docs.html")

@@ -172,6 +172,11 @@
                             <i class="bi bi-play-circle"></i> Pipeline Control
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'api_docs' %}active{% endif %}" href="{% url 'api_docs' %}">
+                            <i class="bi bi-braces-asterisk"></i> API Reference
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>

@@ -124,6 +124,39 @@
     <div id="console-output" class="bg-dark text-light rounded p-3 font-monospace small overflow-auto shadow-inner" style="min-height:220px; max-height:540px; line-height:1.7;">
         <span class="text-secondary">— Console ready. Click any action above to begin. —</span>
     </div>
+
+    <!-- Download Buttons — shown after a successful run -->
+    <div id="download-strip" class="d-none mt-3 d-flex flex-wrap gap-2">
+        <button class="btn btn-outline-primary" onclick="openDownloadModal('raw')">
+            <i class="bi bi-file-earmark-zip me-1"></i> Download Raw Files (ZIP)
+        </button>
+        <button class="btn btn-outline-success" onclick="openDownloadModal('processed')">
+            <i class="bi bi-file-earmark-zip me-1"></i> Download Processed Files (ZIP)
+        </button>
+    </div>
+</div>
+
+<!-- Modal: file browser -->
+<div class="modal fade" id="download-modal" tabindex="-1" aria-labelledby="download-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="download-modal-label">Available Files</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Click a filename to download it individually, or use the ZIP button to get everything at once.</p>
+                <div id="download-modal-list" class="list-group list-group-flush"></div>
+                <div id="download-modal-empty" class="d-none text-center text-muted py-4">No files available yet. Run an extraction first.</div>
+            </div>
+            <div class="modal-footer">
+                <a id="download-zip-link" href="#" class="btn btn-primary" download>
+                    <i class="bi bi-file-earmark-zip me-1"></i> Download All as ZIP
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -137,6 +170,8 @@
 <script>
 const CSRF = '{{ csrf_token }}';
 const ALL_BTNS = ['btn-extract','btn-transform','btn-load','btn-all'];
+// Download endpoints are served by Django (same host/port as the GUI)
+const DOWNLOAD_BASE = '';  // relative — no port needed
 let _pollTimer = null;
 
 function setRunning(yes) {
@@ -187,6 +222,7 @@ function clearConsole() {
     localStorage.removeItem('etl_run');
     document.getElementById('console-output').innerHTML = '<span class="text-secondary">— Console cleared. —</span>';
     document.getElementById('status-badge').classList.add('d-none');
+    document.getElementById('download-strip').classList.add('d-none');
     setRunning(false);
 }
 
@@ -242,6 +278,8 @@ function pollLogs(runId, since) {
                 fin.textContent = '● Pipeline finished.';
                 document.getElementById('console-output').appendChild(fin);
                 document.getElementById('console-output').scrollTop = 99999;
+                // Show download buttons
+                document.getElementById('download-strip').classList.remove('d-none');
             } else {
                 // Poll again in 500 ms
                 _pollTimer = setTimeout(() => pollLogs(runId, nextSince), 500);
@@ -323,6 +361,8 @@ function runAction(action) {
                 fin.textContent = '● Pipeline finished.';
                 document.getElementById('console-output').appendChild(fin);
                 document.getElementById('console-output').scrollTop = 99999;
+                // Restore download buttons on page refresh
+                document.getElementById('download-strip').classList.remove('d-none');
             } else {
                 // Still running — resume polling
                 setRunning(true);
@@ -332,5 +372,50 @@ function runAction(action) {
         })
         .catch(() => sessionStorage.removeItem('etl_run'));
 })();
+
+// ---------------------------------------------------------------------------
+// Download helpers
+// ---------------------------------------------------------------------------
+
+function openDownloadModal(kind) {
+    const label = kind === 'raw' ? 'Raw Files' : 'Processed Files';
+    document.getElementById('download-modal-label').textContent = `Download ${label}`;
+
+    const list = document.getElementById('download-modal-list');
+    const empty = document.getElementById('download-modal-empty');
+    const zipLink = document.getElementById('download-zip-link');
+
+    list.innerHTML = '<div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm"></div> Loading file list…</div>';
+    empty.classList.add('d-none');
+    // ZIP download — Django URL, same host as the GUI
+    zipLink.href = `/download/${kind}/zip/`;
+    zipLink.setAttribute('download', `${kind}_files.zip`);
+
+    const modal = new bootstrap.Modal(document.getElementById('download-modal'));
+    modal.show();
+
+    // Fetch the file list from the Django view
+    fetch(`/download/${kind}/`)
+        .then(r => r.json())
+        .then(data => {
+            list.innerHTML = '';
+            if (!data.files || data.files.length === 0) {
+                empty.classList.remove('d-none');
+                return;
+            }
+            data.files.forEach(f => {
+                const a = document.createElement('a');
+                // f.url is already a relative Django path like /download/raw/file/subdir/name.csv
+                a.href = f.url;
+                a.textContent = f.name;
+                a.className = 'list-group-item list-group-item-action text-truncate font-monospace small';
+                a.setAttribute('download', f.name.split('/').pop());
+                list.appendChild(a);
+            });
+        })
+        .catch(() => {
+            list.innerHTML = '<div class="text-danger p-3">Could not load file list. Please try again.</div>';
+        });
+}
 </script>
 {% endblock %}
