@@ -114,6 +114,14 @@
     background: #f0fdf4; border: 1px solid #bbf7d0;
     border-radius: 10px; padding: 1rem 1.25rem;
   }
+
+  /* Section cards — tighter padding than card p-4 mb-4 to avoid stacked gap */
+  .doc-section {
+    padding: 1.25rem 1.5rem 1rem;
+    margin-bottom: 1rem;
+    height: auto !important;  /* override base card height:100% which stretches to sidebar height */
+    align-self: flex-start;   /* don't stretch in a flex column context */
+  }
 </style>
 {% endblock %}
 
@@ -157,7 +165,7 @@
   <div class="col-lg-9 order-lg-1">
 
     <!-- ── Getting Started ──────────────────────────────────── -->
-    <div class="card p-4 mb-4" id="getting-started">
+    <div class="card doc-section" id="getting-started">
       <h2 class="h4 mb-3"><i class="bi bi-rocket-takeoff text-primary me-2"></i>Getting Started</h2>
 
       <div class="alert-integrated mb-3">
@@ -214,7 +222,7 @@
     </div>
 
     <!-- ── Health ───────────────────────────────────────────── -->
-    <div class="card p-4 mb-4" id="health">
+    <div class="card doc-section" id="health">
       <h2 class="h5 mb-3"><i class="bi bi-heart-pulse text-danger me-2"></i>Health Check</h2>
       <div class="endpoint-card card">
         <div class="card-header" data-bs-toggle="collapse" data-bs-target="#c-health">
@@ -244,7 +252,7 @@
     </div>
 
     <!-- ── Datasets ──────────────────────────────────────────── -->
-    <div class="card p-4 mb-4" id="datasets">
+    <div class="card doc-section" id="datasets">
       <h2 class="h5 mb-3"><i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>Datasets</h2>
 
       <div class="endpoint-card card mb-3">
@@ -311,7 +319,7 @@
     </div>
 
     <!-- ── Categories ───────────────────────────────────────── -->
-    <div class="card p-4 mb-4" id="categories">
+    <div class="card doc-section" id="categories">
       <h2 class="h5 mb-3"><i class="bi bi-collection text-success me-2"></i>Categories</h2>
       <div class="endpoint-card card">
         <div class="card-header" data-bs-toggle="collapse" data-bs-target="#c-cats">
@@ -342,7 +350,7 @@
     </div>
 
     <!-- ── Observations ─────────────────────────────────────── -->
-    <div class="card p-4 mb-4" id="observations">
+    <div class="card doc-section" id="observations">
       <h2 class="h5 mb-3"><i class="bi bi-table text-warning me-2"></i>Observations</h2>
       <div class="endpoint-card card">
         <div class="card-header" data-bs-toggle="collapse" data-bs-target="#c-obs">
@@ -395,7 +403,7 @@
     </div>
 
     <!-- ── File Downloads ───────────────────────────────────── -->
-    <div class="card p-4 mb-4" id="files">
+    <div class="card doc-section" id="files">
       <h2 class="h5 mb-3"><i class="bi bi-file-earmark-zip text-info me-2"></i>File Downloads</h2>
       <p class="small text-muted mb-3">Download raw scraped files or cleaned processed CSVs — served from this same host.</p>
 
@@ -474,7 +482,7 @@
     </div>
 
     <!-- ── Errors ────────────────────────────────────────────── -->
-    <div class="card p-4 mb-4" id="errors">
+    <div class="card doc-section" id="errors">
       <h2 class="h5 mb-3"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Error Responses</h2>
       <p class="small text-muted mb-3">All errors return JSON with an <code>"error"</code> key.</p>
       <table class="table param-table">
