@@ -38,7 +38,14 @@ from src.db.database import test_connection
 # Helpers
 # ---------------------------------------------------------------------------
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+# Data directory resolution: check cwd first (pipeline writes relative to cwd),
+# then fall back to __file__-relative path.
+def _resolve_data_dir(kind: str) -> pathlib.Path:
+    cwd_path = pathlib.Path(os.getcwd()) / "data" / kind
+    if cwd_path.exists():
+        return cwd_path
+    file_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    return pathlib.Path(file_root) / "data" / kind
 
 MAX_PER_PAGE = 500
 DEFAULT_PER_PAGE = 50
@@ -58,7 +65,7 @@ def _json(data, status: int = 200) -> JsonResponse:
 def _safe_data_dir(kind: str) -> pathlib.Path:
     if kind not in ("raw", "processed"):
         raise ValueError("kind must be 'raw' or 'processed'")
-    return pathlib.Path(_PROJECT_ROOT) / "data" / kind
+    return _resolve_data_dir(kind)
 
 
 # ---------------------------------------------------------------------------

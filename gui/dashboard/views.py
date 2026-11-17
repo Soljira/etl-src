@@ -375,15 +375,34 @@ def pipeline_logs(request):
 # File download views (serve raw / processed files directly from Django)
 # ---------------------------------------------------------------------------
 
-# Project root is three levels up from this file (gui/dashboard/views.py)
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+# Project root is wherever Django is launched from (manage.py directory = gui/).
+# The extractors also use os.getcwd() so this keeps paths consistent.
+# We use Django's BASE_DIR from settings as the canonical anchor.
+try:
+    from django.conf import settings as _dj_settings
+    _PROJECT_ROOT = str(_dj_settings.BASE_DIR.parent)   # gui/../ = etl-src/
+except Exception:
+    _PROJECT_ROOT = os.getcwd()
+
+# The pipeline writes relative to cwd (which is gui/ on Render).
+# So data lives at gui/data/raw, not etl-src/data/raw.
+# We check both locations and prefer whichever actually exists.
+def _resolve_data_dir(kind: str) -> pathlib.Path:
+    """Return the data directory, checking cwd-relative path first."""
+    # Pipeline writes here (cwd = gui/ when started from gui/manage.py)
+    cwd_path = pathlib.Path(os.getcwd()) / "data" / kind
+    if cwd_path.exists():
+        return cwd_path
+    # Fallback: project root resolved via __file__
+    file_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    return pathlib.Path(file_root) / "data" / kind
 
 
 def _safe_data_dir(kind: str) -> pathlib.Path:
     """Return the absolute path for 'raw' or 'processed' data directory."""
     if kind not in ("raw", "processed"):
         raise ValueError("kind must be 'raw' or 'processed'")
-    return pathlib.Path(_PROJECT_ROOT) / "data" / kind
+    return _resolve_data_dir(kind)
 
 
 @require_GET
@@ -468,7 +487,7 @@ def api_docs(request):
 def downloads(request):
     """Downloads page — lists raw and processed files server-side."""
     def _scan(kind: str) -> list:
-        data_dir = pathlib.Path(_PROJECT_ROOT) / "data" / kind
+        data_dir = _resolve_data_dir(kind)
         files = []
         if data_dir.exists():
             for f in sorted(data_dir.rglob("*")):
