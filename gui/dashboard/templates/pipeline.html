@@ -388,14 +388,14 @@ function openDownloadModal(kind) {
     list.innerHTML = '<div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm"></div> Loading file list…</div>';
     empty.classList.add('d-none');
     // ZIP download — Django URL, same host as the GUI
-    zipLink.href = `/download/${kind}/zip/`;
+    zipLink.href = `/api/v1/download/${kind}.zip`;
     zipLink.setAttribute('download', `${kind}_files.zip`);
 
     const modal = new bootstrap.Modal(document.getElementById('download-modal'));
     modal.show();
 
     // Fetch the file list from the Django view
-    fetch(`/download/${kind}/`)
+    fetch(`/api/v1/files/${kind}`)
         .then(r => r.json())
         .then(data => {
             list.innerHTML = '';
