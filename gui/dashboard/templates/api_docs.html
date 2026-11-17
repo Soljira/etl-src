@@ -33,10 +33,11 @@
     font-size: .7rem;
     font-weight: 700;
     color: #94a3b8;
-    margin-bottom: .5rem;
+    margin: .75rem 0 .4rem;
   }
+  .section-label:first-child { margin-top: 0; }
 
-  .badge-get  { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .badge-get { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 
   .endpoint-card { border-left: 3px solid #0284c7; border-radius: 10px; margin-bottom: 1rem; overflow: hidden; }
   .endpoint-card.download { border-left-color: #0891b2; }
@@ -49,52 +50,45 @@
   .endpoint-path { font-family: 'Courier New', monospace; font-size: .9rem; font-weight: 600; color: #0f172a; }
   .endpoint-desc { color: #64748b; font-size: .82rem; margin-left: auto; }
 
-  /* Code blocks */
-  .code-block-wrap {
+  /* Code block wrapper — positions the copy button as an overlay */
+  .code-wrap {
     position: relative;
-    margin-bottom: 0;
+    margin: 0;
   }
-  .code-block {
+  /* <pre> tag: browser trims the first newline automatically */
+  pre.code-block {
     background: #0f172a;
     color: #e2e8f0;
     border-radius: 8px;
-    padding: .85rem 1.1rem;
-    padding-right: 4.5rem;        /* room for the copy button */
+    padding: .8rem 4rem .8rem 1.1rem; /* right padding leaves room for copy btn */
     font-family: 'Courier New', monospace;
     font-size: .82rem;
     line-height: 1.6;
     overflow-x: auto;
-    white-space: pre-wrap;        /* wraps long lines instead of causing overflow */
-    word-break: break-all;
+    white-space: pre;
     margin: 0;
   }
-  /* Copy button floats above the code as a semi-transparent glass layer */
+  /* Copy button — true overlay layer, like a Photoshop layer above the text */
   .copy-btn {
     position: absolute;
-    top: .55rem;
-    right: .65rem;
-    z-index: 10;                  /* sits above the code text like a Photoshop layer */
+    top: .5rem;
+    right: .6rem;
+    z-index: 10;
     background: rgba(255,255,255,.10);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    border: 1px solid rgba(255,255,255,.20);
+    border: 1px solid rgba(255,255,255,.22);
     border-radius: 6px;
-    color: rgba(255,255,255,.60);
-    padding: .18rem .55rem;
+    color: rgba(255,255,255,.65);
+    padding: .15rem .5rem;
     font-size: .7rem;
     font-family: inherit;
     cursor: pointer;
+    line-height: 1.5;
     transition: background .15s, color .15s, border-color .15s;
-    line-height: 1.4;
   }
-  .copy-btn:hover {
-    background: rgba(255,255,255,.22);
-    border-color: rgba(255,255,255,.40);
-    color: #fff;
-  }
-  .copy-btn:active {
-    background: rgba(255,255,255,.30);
-  }
+  .copy-btn:hover  { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.4); color: #fff; }
+  .copy-btn:active { background: rgba(255,255,255,.30); }
 
   .param-table th { font-size: .72rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: .05em; }
   .param-table td { font-size: .82rem; }
@@ -103,9 +97,9 @@
 
   @media (min-width: 992px) { .toc-sticky { position: sticky; top: 90px; } }
 
-  .json-key  { color: #93c5fd; }
-  .json-str  { color: #86efac; }
-  .json-num  { color: #fda4af; }
+  .json-key { color: #93c5fd; }
+  .json-str { color: #86efac; }
+  .json-num { color: #fda4af; }
 
   .step-circle {
     width: 32px; height: 32px; border-radius: 50%;
@@ -113,6 +107,8 @@
     color: #fff; display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: .9rem; flex-shrink: 0;
   }
+  /* min-width:0 prevents flex child from overflowing its row */
+  .step-body { flex: 1; min-width: 0; }
 
   .alert-integrated {
     background: #f0fdf4; border: 1px solid #bbf7d0;
@@ -136,7 +132,7 @@
   <div class="col-lg-3 order-lg-2">
     <div class="toc-sticky">
       <div class="card p-3">
-        <div class="section-label mb-2">On this page</div>
+        <div class="section-label" style="margin-top:0">On this page</div>
         <nav class="nav flex-column gap-1">
           <a class="nav-link py-1 px-2 small" href="#getting-started">Getting Started</a>
           <a class="nav-link py-1 px-2 small" href="#health">Health Check</a>
@@ -148,7 +144,7 @@
         </nav>
       </div>
       <div class="card p-3 mt-3">
-        <div class="section-label mb-2">Try it now</div>
+        <div class="section-label" style="margin-top:0">Try it now</div>
         <p class="small text-muted mb-2">Open the health endpoint in your browser:</p>
         <a id="try-link" href="/api/v1/health" target="_blank" rel="noopener" class="btn btn-primary btn-sm w-100">
           <i class="bi bi-box-arrow-up-right me-1"></i> Open /api/v1/health
@@ -160,42 +156,50 @@
   <!-- Main docs -->
   <div class="col-lg-9 order-lg-1">
 
-    <!-- ── Getting Started ───────────────────────────────────── -->
+    <!-- ── Getting Started ──────────────────────────────────── -->
     <div class="card p-4 mb-4" id="getting-started">
       <h2 class="h4 mb-3"><i class="bi bi-rocket-takeoff text-primary me-2"></i>Getting Started</h2>
 
-      <div class="alert-integrated mb-4">
+      <div class="alert-integrated mb-3">
         <div class="d-flex align-items-center gap-2 mb-1">
           <i class="bi bi-check-circle-fill text-success"></i>
           <strong>No separate server required</strong>
         </div>
         <p class="small text-muted mb-0">
           The REST API runs on the <strong>same host and port</strong> as this dashboard.
-          If you can see this page, the API is already live at
-          <code id="inline-base"></code>.
+          If you can see this page, the API is already live at <code id="inline-base"></code>.
         </p>
       </div>
 
       <div class="d-flex flex-column gap-3">
         <div class="d-flex gap-3 align-items-start">
           <div class="step-circle">1</div>
-          <div>
+          <div class="step-body">
             <div class="fw-semibold mb-1">Check it's healthy</div>
-            <div class="code-block">curl <span class="base-ph"></span>/api/v1/health<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <div class="code-wrap">
+              <pre class="code-block">curl <span class="base-ph"></span>/api/v1/health</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
           </div>
         </div>
         <div class="d-flex gap-3 align-items-start">
           <div class="step-circle">2</div>
-          <div>
+          <div class="step-body">
             <div class="fw-semibold mb-1">List all datasets</div>
-            <div class="code-block">curl <span class="base-ph"></span>/api/v1/datasets<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <div class="code-wrap">
+              <pre class="code-block">curl <span class="base-ph"></span>/api/v1/datasets</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
           </div>
         </div>
         <div class="d-flex gap-3 align-items-start">
           <div class="step-circle">3</div>
-          <div>
+          <div class="step-body">
             <div class="fw-semibold mb-1">Query observations with filters</div>
-            <div class="code-block">curl "<span class="base-ph"></span>/api/v1/observations?category=Labor_and_Employment&year=2022"<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <div class="code-wrap">
+              <pre class="code-block">curl "<span class="base-ph"></span>/api/v1/observations?category=Labor_and_Employment&year=2022"</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
           </div>
         </div>
       </div>
@@ -222,17 +226,24 @@
         <div class="collapse show" id="c-health">
           <div class="card-body p-3">
             <div class="section-label">Request</div>
-            <div class="code-block">curl <span class="base-ph"></span>/api/v1/health<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <div class="section-label mt-3">200 — healthy</div>
-            <div class="code-block">{ <span class="json-key">"status"</span>: <span class="json-str">"healthy"</span>, <span class="json-key">"database"</span>: <span class="json-str">"connected"</span> }</div>
-            <div class="section-label mt-3">503 — database unreachable</div>
-            <div class="code-block">{ <span class="json-key">"status"</span>: <span class="json-str">"unhealthy"</span>, <span class="json-key">"database"</span>: <span class="json-str">"disconnected"</span> }</div>
+            <div class="code-wrap">
+              <pre class="code-block">curl <span class="base-ph"></span>/api/v1/health</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <div class="section-label">200 — healthy</div>
+            <div class="code-wrap">
+              <pre class="code-block">{ <span class="json-key">"status"</span>: <span class="json-str">"healthy"</span>, <span class="json-key">"database"</span>: <span class="json-str">"connected"</span> }</pre>
+            </div>
+            <div class="section-label">503 — database unreachable</div>
+            <div class="code-wrap">
+              <pre class="code-block">{ <span class="json-key">"status"</span>: <span class="json-str">"unhealthy"</span>, <span class="json-key">"database"</span>: <span class="json-str">"disconnected"</span> }</pre>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Datasets ─────────────────────────────────────────── -->
+    <!-- ── Datasets ──────────────────────────────────────────── -->
     <div class="card p-4 mb-4" id="datasets">
       <h2 class="h5 mb-3"><i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>Datasets</h2>
 
@@ -246,14 +257,19 @@
         <div class="collapse show" id="c-ds-list">
           <div class="card-body p-3">
             <div class="section-label">Request</div>
-            <div class="code-block">curl <span class="base-ph"></span>/api/v1/datasets<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <div class="section-label mt-3">Response (200)</div>
-            <div class="code-block">{
+            <div class="code-wrap">
+              <pre class="code-block">curl <span class="base-ph"></span>/api/v1/datasets</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <div class="section-label">Response (200)</div>
+            <div class="code-wrap">
+              <pre class="code-block">{
   <span class="json-key">"count"</span>: <span class="json-num">3</span>,
   <span class="json-key">"data"</span>: [
     { <span class="json-key">"dataset_id"</span>: <span class="json-str">"Employment_Rate_Annual"</span>, <span class="json-key">"category"</span>: <span class="json-str">"Labor_and_Employment"</span>, <span class="json-key">"row_count"</span>: <span class="json-num">1248</span> }
   ]
-}</div>
+}</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -267,14 +283,18 @@
         </div>
         <div class="collapse show" id="c-ds-one">
           <div class="card-body p-3">
-            <table class="table param-table mb-3">
+            <table class="table param-table mb-2">
               <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
               <tbody><tr><td class="param-name">dataset_id</td><td class="param-type">string</td><td>Unique dataset identifier</td></tr></tbody>
             </table>
             <div class="section-label">Request</div>
-            <div class="code-block">curl <span class="base-ph"></span>/api/v1/datasets/Employment_Rate_Annual<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <div class="section-label mt-3">Response (200)</div>
-            <div class="code-block">{
+            <div class="code-wrap">
+              <pre class="code-block">curl <span class="base-ph"></span>/api/v1/datasets/Employment_Rate_Annual</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <div class="section-label">Response (200)</div>
+            <div class="code-wrap">
+              <pre class="code-block">{
   <span class="json-key">"data"</span>: {
     <span class="json-key">"dataset_id"</span>: <span class="json-str">"Employment_Rate_Annual"</span>,
     <span class="json-key">"category"</span>:   <span class="json-str">"Labor_and_Employment"</span>,
@@ -283,7 +303,8 @@
     <span class="json-key">"year_min"</span>:    <span class="json-num">2000</span>,
     <span class="json-key">"year_max"</span>:    <span class="json-num">2023</span>
   }
-}</div>
+}</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -302,14 +323,19 @@
         <div class="collapse show" id="c-cats">
           <div class="card-body p-3">
             <div class="section-label">Request</div>
-            <div class="code-block">curl <span class="base-ph"></span>/api/v1/categories<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <div class="section-label mt-3">Response (200)</div>
-            <div class="code-block">{
+            <div class="code-wrap">
+              <pre class="code-block">curl <span class="base-ph"></span>/api/v1/categories</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <div class="section-label">Response (200)</div>
+            <div class="code-wrap">
+              <pre class="code-block">{
   <span class="json-key">"count"</span>: <span class="json-num">5</span>,
   <span class="json-key">"data"</span>: [
     { <span class="json-key">"category"</span>: <span class="json-str">"Labor_and_Employment"</span>, <span class="json-key">"dataset_count"</span>: <span class="json-num">4</span>, <span class="json-key">"total_rows"</span>: <span class="json-num">9810</span> }
   ]
-}</div>
+}</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -327,7 +353,7 @@
         </div>
         <div class="collapse show" id="c-obs">
           <div class="card-body p-3">
-            <table class="table param-table mb-3">
+            <table class="table param-table mb-2">
               <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
               <tbody>
                 <tr><td class="param-name">category</td><td class="param-type">string</td><td>—</td><td>Exact category match</td></tr>
@@ -340,11 +366,18 @@
               </tbody>
             </table>
             <div class="section-label">Example — no filter</div>
-            <div class="code-block">curl "<span class="base-ph"></span>/api/v1/observations"<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <div class="section-label mt-3">Example — filter by category and year</div>
-            <div class="code-block">curl "<span class="base-ph"></span>/api/v1/observations?category=Labor_and_Employment&year=2022&per_page=100"<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <div class="section-label mt-3">Response (200)</div>
-            <div class="code-block">{
+            <div class="code-wrap">
+              <pre class="code-block">curl "<span class="base-ph"></span>/api/v1/observations"</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <div class="section-label">Example — filter by category and year</div>
+            <div class="code-wrap">
+              <pre class="code-block">curl "<span class="base-ph"></span>/api/v1/observations?category=Labor_and_Employment&year=2022&per_page=100"</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <div class="section-label">Response (200)</div>
+            <div class="code-wrap">
+              <pre class="code-block">{
   <span class="json-key">"data"</span>: [
     {
       <span class="json-key">"id"</span>: <span class="json-num">1</span>, <span class="json-key">"dataset_id"</span>: <span class="json-str">"Employment_Rate_Annual"</span>,
@@ -354,7 +387,8 @@
     }
   ],
   <span class="json-key">"pagination"</span>: { <span class="json-key">"page"</span>: <span class="json-num">1</span>, <span class="json-key">"per_page"</span>: <span class="json-num">50</span>, <span class="json-key">"total"</span>: <span class="json-num">1248</span>, <span class="json-key">"pages"</span>: <span class="json-num">25</span> }
-}</div>
+}</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -363,12 +397,8 @@
     <!-- ── File Downloads ───────────────────────────────────── -->
     <div class="card p-4 mb-4" id="files">
       <h2 class="h5 mb-3"><i class="bi bi-file-earmark-zip text-info me-2"></i>File Downloads</h2>
-      <p class="small text-muted mb-3">
-        Download the raw scraped files or cleaned processed CSVs.
-        All endpoints are served from this same host — no extra setup required.
-      </p>
+      <p class="small text-muted mb-3">Download raw scraped files or cleaned processed CSVs — served from this same host.</p>
 
-      <!-- list -->
       <div class="endpoint-card download card mb-3">
         <div class="card-header" data-bs-toggle="collapse" data-bs-target="#c-fl">
           <span class="badge badge-get px-2 py-1 small fw-bold">GET</span>
@@ -378,25 +408,29 @@
         </div>
         <div class="collapse show" id="c-fl">
           <div class="card-body p-3">
-            <table class="table param-table mb-3">
+            <table class="table param-table mb-2">
               <thead><tr><th>Param</th><th>Values</th><th>Description</th></tr></thead>
               <tbody><tr><td class="param-name">kind</td><td><code>raw</code> | <code>processed</code></td><td>Which data folder to list</td></tr></tbody>
             </table>
             <div class="section-label">Request</div>
-            <div class="code-block">curl "<span class="base-ph"></span>/api/v1/files/raw"<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <div class="section-label mt-3">Response (200)</div>
-            <div class="code-block">{
+            <div class="code-wrap">
+              <pre class="code-block">curl "<span class="base-ph"></span>/api/v1/files/raw"</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <div class="section-label">Response (200)</div>
+            <div class="code-wrap">
+              <pre class="code-block">{
   <span class="json-key">"zip_url"</span>: <span class="json-str">"/api/v1/download/raw.zip"</span>,
   <span class="json-key">"count"</span>: <span class="json-num">256</span>,
   <span class="json-key">"files"</span>: [
     { <span class="json-key">"name"</span>: <span class="json-str">"psa/Employment_Rate.csv"</span>, <span class="json-key">"url"</span>: <span class="json-str">"/api/v1/download/raw/psa/Employment_Rate.csv"</span> }
   ]
-}</div>
+}</pre>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- zip -->
       <div class="endpoint-card download card mb-3">
         <div class="card-header" data-bs-toggle="collapse" data-bs-target="#c-fz">
           <span class="badge badge-get px-2 py-1 small fw-bold">GET</span>
@@ -407,14 +441,19 @@
         <div class="collapse show" id="c-fz">
           <div class="card-body p-3">
             <div class="section-label">Raw files ZIP</div>
-            <div class="code-block">curl -O "<span class="base-ph"></span>/api/v1/download/raw.zip"<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <div class="section-label mt-3">Processed files ZIP</div>
-            <div class="code-block">curl -O "<span class="base-ph"></span>/api/v1/download/processed.zip"<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <div class="code-wrap">
+              <pre class="code-block">curl -O "<span class="base-ph"></span>/api/v1/download/raw.zip"</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <div class="section-label">Processed files ZIP</div>
+            <div class="code-wrap">
+              <pre class="code-block">curl -O "<span class="base-ph"></span>/api/v1/download/processed.zip"</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- single file -->
       <div class="endpoint-card download card">
         <div class="card-header" data-bs-toggle="collapse" data-bs-target="#c-fs">
           <span class="badge badge-get px-2 py-1 small fw-bold">GET</span>
@@ -425,7 +464,10 @@
         <div class="collapse show" id="c-fs">
           <div class="card-body p-3">
             <div class="section-label">Request</div>
-            <div class="code-block">curl -O "<span class="base-ph"></span>/api/v1/download/raw/psa/Employment_Rate.csv"<button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <div class="code-wrap">
+              <pre class="code-block">curl -O "<span class="base-ph"></span>/api/v1/download/raw/psa/Employment_Rate.csv"</pre>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
           </div>
         </div>
       </div>
@@ -455,44 +497,13 @@
   document.getElementById('inline-base').textContent = origin + '/api/v1';
   document.getElementById('try-link').href = origin + '/api/v1/health';
   document.querySelectorAll('.base-ph').forEach(el => { el.textContent = origin; });
-
-  // ── Fix copy-button overlay ──────────────────────────────────────────
-  // Move every inline <button class="copy-btn"> out of the text flow
-  // and re-insert it as an absolute-positioned sibling overlay.
-  document.querySelectorAll('.code-block').forEach(block => {
-    const btn = block.querySelector('.copy-btn');
-    if (!btn) return;
-    // Detach from inside the pre text
-    btn.remove();
-    // Wrap the block so the button can be positioned relative to it
-    const wrap = document.createElement('div');
-    wrap.style.position = 'relative';
-    block.parentNode.insertBefore(wrap, block);
-    wrap.appendChild(block);
-    // Re-attach button as an overlay layer above the text
-    btn.style.cssText = [
-      'position:absolute', 'top:.55rem', 'right:.65rem', 'z-index:10',
-      'background:rgba(255,255,255,.10)', 'backdrop-filter:blur(4px)',
-      '-webkit-backdrop-filter:blur(4px)',
-      'border:1px solid rgba(255,255,255,.22)', 'border-radius:6px',
-      'color:rgba(255,255,255,.60)', 'padding:.18rem .55rem',
-      'font-size:.7rem', 'font-family:inherit', 'cursor:pointer',
-      'line-height:1.4', 'transition:background .15s,color .15s',
-    ].join(';');
-    btn.onmouseenter = () => { btn.style.background = 'rgba(255,255,255,.22)'; btn.style.color = '#fff'; };
-    btn.onmouseleave = () => { btn.style.background = 'rgba(255,255,255,.10)'; btn.style.color = 'rgba(255,255,255,.60)'; };
-    wrap.appendChild(btn);
-    // Give the block breathing room on the right so text doesn't hide under button
-    block.style.paddingRight = '4.5rem';
-  });
 })();
 
 function copyCode(btn) {
-  // The button is now a sibling of .code-block inside the wrapper
-  const wrap = btn.parentNode;
-  const block = wrap.querySelector('.code-block');
-  if (!block) return;
-  navigator.clipboard.writeText(block.innerText.trim()).then(() => {
+  // Button is a sibling of <pre class="code-block"> inside .code-wrap
+  const pre = btn.closest('.code-wrap').querySelector('pre.code-block');
+  if (!pre) return;
+  navigator.clipboard.writeText(pre.innerText.trim()).then(() => {
     btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
   });
