@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Downloads - Open Data PH ETL{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dl-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #0369a1 100%);
+    border-radius: 16px;
+    padding: 2rem 2rem 1.75rem;
+    color: #fff;
+    margin-bottom: 1.75rem;
+  }
+  .dl-hero h1 { font-size: 1.9rem; margin-bottom: .4rem; }
+  .dl-hero p  { opacity: .8; margin-bottom: 0; font-size: .95rem; }
+
+  /* Section headers */
+  .dl-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  /* File table */
+  .file-table th {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #94a3b8;
+    font-weight: 600;
+    border-bottom-width: 1px;
+  }
+  .file-table td { font-size: .875rem; vertical-align: middle; }
+  .file-name {
+    font-family: 'Courier New', monospace;
+    font-size: .82rem;
+    color: #0f172a;
+    word-break: break-all;
+  }
+  .file-size { color: #94a3b8; font-size: .78rem; white-space: nowrap; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #94a3b8;
+  }
+  .empty-state i { font-size: 2.5rem; display: block; margin-bottom: .75rem; }
+
+  /* Search box */
+  .file-search { max-width: 280px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="dl-hero">
+  <h1><i class="bi bi-download me-2"></i>Downloads</h1>
+  <p>Download raw extracted files or processed, cleaned datasets from the ETL pipeline.</p>
+</div>
+
+<!-- ── Raw Files ──────────────────────────────────────────────── -->
+<div class="card p-4 mb-4">
+  <div class="dl-section-header">
+    <div>
+      <h2 class="h5 mb-0">
+        <i class="bi bi-folder2-open text-warning me-2"></i>Raw Files
+        <span class="badge bg-secondary ms-1 fw-normal" style="font-size:.75rem;">{{ raw_files|length }}</span>
+      </h2>
+      <div class="small text-muted mt-1">Source files as downloaded from government portals — <code>data/raw/</code></div>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <input type="text" class="form-control form-control-sm file-search"
+             placeholder="Filter files…" oninput="filterTable('raw-table', this.value)">
+      {% if raw_files %}
+        <a href="/api/v1/download/raw.zip" class="btn btn-warning btn-sm" download="raw_files.zip">
+          <i class="bi bi-file-earmark-zip me-1"></i>Download All (ZIP)
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if raw_files %}
+    <div class="table-responsive">
+      <table class="table file-table table-hover mb-0" id="raw-table">
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th class="text-end" style="width:80px">Size</th>
+            <th class="text-end" style="width:110px">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in raw_files %}
+            <tr>
+              <td class="file-name">{{ f.name }}</td>
+              <td class="file-size text-end">{{ f.size }}</td>
+              <td class="text-end">
+                <a href="{{ f.url }}" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                   download="{{ f.name|slice:'1:' }}">
+                  <i class="bi bi-download"></i>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="bi bi-inbox"></i>
+      <div class="fw-semibold mb-1">No raw files yet</div>
+      <div class="small">Run the <a href="{% url 'pipeline' %}">Extraction step</a> to populate this folder.</div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ── Processed Files ───────────────────────────────────────── -->
+<div class="card p-4 mb-4">
+  <div class="dl-section-header">
+    <div>
+      <h2 class="h5 mb-0">
+        <i class="bi bi-file-earmark-check text-success me-2"></i>Processed Files
+        <span class="badge bg-secondary ms-1 fw-normal" style="font-size:.75rem;">{{ processed_files|length }}</span>
+      </h2>
+      <div class="small text-muted mt-1">Cleaned and standardised CSVs ready for analysis — <code>data/processed/</code></div>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <input type="text" class="form-control form-control-sm file-search"
+             placeholder="Filter files…" oninput="filterTable('processed-table', this.value)">
+      {% if processed_files %}
+        <a href="/api/v1/download/processed.zip" class="btn btn-success btn-sm" download="processed_files.zip">
+          <i class="bi bi-file-earmark-zip me-1"></i>Download All (ZIP)
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if processed_files %}
+    <div class="table-responsive">
+      <table class="table file-table table-hover mb-0" id="processed-table">
+        <thead>
+          <tr>
+            <th>Filename</th>
+            <th class="text-end" style="width:80px">Size</th>
+            <th class="text-end" style="width:110px">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in processed_files %}
+            <tr>
+              <td class="file-name">{{ f.name }}</td>
+              <td class="file-size text-end">{{ f.size }}</td>
+              <td class="text-end">
+                <a href="{{ f.url }}" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                   download="{{ f.name|slice:'1:' }}">
+                  <i class="bi bi-download"></i>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="bi bi-inbox"></i>
+      <div class="fw-semibold mb-1">No processed files yet</div>
+      <div class="small">Run the <a href="{% url 'pipeline' %}">Transformation step</a> to populate this folder.</div>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+function filterTable(tableId, query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
+    const name = row.querySelector('.file-name')?.textContent.toLowerCase() ?? '';
+    row.style.display = name.includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

@@ -173,6 +173,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'downloads' %}active{% endif %}" href="{% url 'downloads' %}">
+                            <i class="bi bi-download"></i> Downloads
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'api_docs' %}active{% endif %}" href="{% url 'api_docs' %}">
                             <i class="bi bi-braces-asterisk"></i> API Reference
                         </a>

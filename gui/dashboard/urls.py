@@ -9,6 +9,7 @@ urlpatterns = [
     path("pipeline/run/", views.pipeline_run, name="pipeline_run"),
     path("pipeline/logs/", views.pipeline_logs, name="pipeline_logs"),
     path("api-docs/", views.api_docs, name="api_docs"),
+    path("downloads/", views.downloads, name="downloads"),
 
     # ── File download pages (GUI, same host) ───────────────────────────────
     path("download/<str:kind>/", views.files_list, name="files_list"),

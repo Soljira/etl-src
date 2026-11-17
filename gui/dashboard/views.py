@@ -463,3 +463,32 @@ def files_single(request, kind: str, filepath: str):
 def api_docs(request):
     """API Reference documentation page."""
     return render(request, "api_docs.html")
+
+
+def downloads(request):
+    """Downloads page — lists raw and processed files server-side."""
+    def _scan(kind: str) -> list:
+        data_dir = pathlib.Path(_PROJECT_ROOT) / "data" / kind
+        files = []
+        if data_dir.exists():
+            for f in sorted(data_dir.rglob("*")):
+                if f.is_file() and not f.name.startswith("."):
+                    rel = f.relative_to(data_dir)
+                    size = f.stat().st_size
+                    if size >= 1_048_576:
+                        size_str = f"{size / 1_048_576:.1f} MB"
+                    elif size >= 1024:
+                        size_str = f"{size / 1024:.1f} KB"
+                    else:
+                        size_str = f"{size} B"
+                    files.append({
+                        "name": str(rel),
+                        "url": f"/api/v1/download/{kind}/{rel}",
+                        "size": size_str,
+                    })
+        return files
+
+    return render(request, "downloads.html", {
+        "raw_files": _scan("raw"),
+        "processed_files": _scan("processed"),
+    })
