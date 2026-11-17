@@ -1,3 +1,4 @@
+import os
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -116,3 +117,105 @@ def test_observations_pagination(client):
     assert len(body["data"]) == 1
     assert body["pagination"]["page"] == 2
     assert body["pagination"]["pages"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Download endpoint tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def app_with_files(tmp_path):
+    """Flask test app with temporary data/raw and data/processed directories."""
+    raw_dir = tmp_path / "raw"
+    processed_dir = tmp_path / "processed"
+    raw_dir.mkdir()
+    processed_dir.mkdir()
+
+    # Seed dummy files
+    (raw_dir / "sample.csv").write_text("col1,col2\n1,2\n")
+    (processed_dir / "clean.csv").write_text("entity,value\nPH,100\n")
+
+    test_engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=test_engine)
+    flask_app = create_app(engine=test_engine)
+    flask_app.config["TESTING"] = True
+    flask_app.config["RAW_DATA_DIR"] = str(raw_dir)
+    flask_app.config["PROCESSED_DATA_DIR"] = str(processed_dir)
+    return flask_app
+
+
+@pytest.fixture
+def dl_client(app_with_files):
+    return app_with_files.test_client()
+
+
+def test_list_raw_files_empty(client):
+    """Returns empty list when data/raw does not exist."""
+    resp = client.get("/api/v1/files/raw")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert "zip_url" in body
+    assert isinstance(body["files"], list)
+
+
+def test_list_raw_files_with_data(dl_client):
+    """Returns the seeded file in the list."""
+    resp = dl_client.get("/api/v1/files/raw")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["count"] == 1
+    assert body["files"][0]["name"] == "sample.csv"
+    assert "/api/v1/download/raw/" in body["files"][0]["url"]
+    assert body["zip_url"] == "/api/v1/download/raw.zip"
+
+
+def test_list_processed_files_with_data(dl_client):
+    """Returns the seeded processed file in the list."""
+    resp = dl_client.get("/api/v1/files/processed")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["count"] == 1
+    assert body["files"][0]["name"] == "clean.csv"
+
+
+def test_download_zip_raw(dl_client):
+    """ZIP endpoint returns a valid zip file for raw data."""
+    resp = dl_client.get("/api/v1/download/raw.zip")
+    assert resp.status_code == 200
+    assert resp.content_type == "application/zip"
+    # ZIP magic bytes: PK\x03\x04
+    assert resp.data[:2] == b"PK"
+
+
+def test_download_zip_processed(dl_client):
+    """ZIP endpoint returns a valid zip file for processed data."""
+    resp = dl_client.get("/api/v1/download/processed.zip")
+    assert resp.status_code == 200
+    assert resp.content_type == "application/zip"
+
+
+def test_download_single_file(dl_client):
+    """Individual file download returns 200 and the file content."""
+    resp = dl_client.get("/api/v1/download/raw/sample.csv")
+    assert resp.status_code == 200
+    assert b"col1" in resp.data
+
+
+def test_download_single_file_not_found(dl_client):
+    """Requesting a non-existent file returns 404."""
+    resp = dl_client.get("/api/v1/download/raw/nonexistent.csv")
+    assert resp.status_code == 404
+    assert "error" in resp.get_json()
+
+
+def test_list_files_invalid_kind(client):
+    """Invalid kind parameter returns 400."""
+    resp = client.get("/api/v1/files/invalid")
+    assert resp.status_code == 400
+    assert "error" in resp.get_json()
+
+
+def test_download_zip_invalid_kind(client):
+    """ZIP endpoint with invalid kind returns 400."""
+    resp = client.get("/api/v1/download/invalid.zip")
+    assert resp.status_code == 400

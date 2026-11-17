@@ -1,4 +1,8 @@
+import io
 import logging
+import os
+import zipfile
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from flask import current_app
@@ -9,6 +13,61 @@ from src.db.database import engine as default_engine
 from src.db.models import Observation
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# File-download helpers (no DB required)
+# ---------------------------------------------------------------------------
+
+def _data_dir(kind: str) -> Path:
+    """
+    Return the absolute path of the raw or processed data directory.
+    'kind' must be 'raw' or 'processed'.
+    """
+    try:
+        base = current_app.config.get(f"{kind.upper()}_DATA_DIR", "")
+    except RuntimeError:
+        base = ""
+    if not base:
+        # Fallback: resolve relative to the project root (cwd)
+        base = os.path.join(os.getcwd(), "data", kind)
+    return Path(base)
+
+
+def list_files(kind: str) -> List[Dict[str, str]]:
+    """
+    Return a list of dicts describing every file in the data/<kind>/ directory.
+    Each dict has 'name' and 'url' keys.
+    """
+    directory = _data_dir(kind)
+    if not directory.exists():
+        return []
+    files = [
+        {
+            "name": f.name,
+            "url": f"/api/v1/download/{kind}/{f.name}",
+        }
+        for f in sorted(directory.rglob("*"))
+        if f.is_file() and not f.name.startswith(".")
+    ]
+    return files
+
+
+def build_zip_bytes(kind: str) -> bytes:
+    """
+    Create an in-memory ZIP archive of all files in data/<kind>/.
+    Returns the raw bytes of the ZIP.
+    """
+    directory = _data_dir(kind)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        if directory.exists():
+            for filepath in sorted(directory.rglob("*")):
+                if filepath.is_file() and not filepath.name.startswith("."):
+                    arcname = filepath.relative_to(directory)
+                    zf.write(filepath, arcname=arcname)
+    buf.seek(0)
+    return buf.read()
 
 
 def _get_engine():

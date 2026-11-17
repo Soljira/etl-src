@@ -1,4 +1,6 @@
-from flask import Blueprint, jsonify, request
+import os
+
+from flask import Blueprint, jsonify, request, send_from_directory, Response
 
 from src.api import services
 from src.db.database import test_connection
@@ -62,3 +64,56 @@ def query_observations():
     )
 
     return jsonify({"data": data, "pagination": pagination})
+
+
+# ---------------------------------------------------------------------------
+# File download routes (no DB required)
+# ---------------------------------------------------------------------------
+
+@api_bp.route("/files/<kind>", methods=["GET"])
+def list_files(kind: str):
+    """Return JSON list of available raw or processed files plus a ZIP download URL."""
+    if kind not in ("raw", "processed"):
+        return jsonify({"error": "kind must be 'raw' or 'processed'."}), 400
+    files = services.list_files(kind)
+    return jsonify({
+        "zip_url": f"/api/v1/download/{kind}.zip",
+        "count": len(files),
+        "files": files,
+    })
+
+
+@api_bp.route("/download/<kind>.zip", methods=["GET"])
+def download_zip(kind: str):
+    """Stream a ZIP archive of all raw or processed data files."""
+    if kind not in ("raw", "processed"):
+        return jsonify({"error": "kind must be 'raw' or 'processed'."}), 400
+    zip_bytes = services.build_zip_bytes(kind)
+    return Response(
+        zip_bytes,
+        status=200,
+        mimetype="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{kind}_files.zip"',
+            "Content-Length": str(len(zip_bytes)),
+        },
+    )
+
+
+@api_bp.route("/download/<kind>/<path:filename>", methods=["GET"])
+def download_single_file(kind: str, filename: str):
+    """Download a single raw or processed file by name."""
+    if kind not in ("raw", "processed"):
+        return jsonify({"error": "kind must be 'raw' or 'processed'."}), 400
+    directory = str(services._data_dir(kind))
+    try:
+        return send_from_directory(directory, filename, as_attachment=True)
+    except FileNotFoundError:
+        return jsonify({"error": f"File '{filename}' not found."}), 404
+    except Exception as exc:  # noqa: BLE001
+        # werkzeug raises NotFound (HTTPException) for missing files in some versions
+        from werkzeug.exceptions import NotFound
+        if isinstance(exc, NotFound):
+            return jsonify({"error": f"File '{filename}' not found."}), 404
+        return jsonify({"error": str(exc)}), 500
+

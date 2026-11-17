@@ -1,6 +1,8 @@
+import os
 from typing import Optional
 
 from flask import Flask
+from flask_cors import CORS
 from sqlalchemy.engine import Engine
 
 from src.db.database import engine as default_engine
@@ -19,6 +21,18 @@ def create_app(engine: Optional[Engine] = None) -> Flask:
 
     app = Flask(__name__)
     app.config["ENGINE"] = engine
+
+    # Resolve data directory paths (absolute so they work regardless of cwd)
+    _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    app.config["RAW_DATA_DIR"] = os.environ.get(
+        "RAW_DATA_DIR", os.path.join(_project_root, "data", "raw")
+    )
+    app.config["PROCESSED_DATA_DIR"] = os.environ.get(
+        "PROCESSED_DATA_DIR", os.path.join(_project_root, "data", "processed")
+    )
+
+    # Enable CORS for all /api/* routes so the browser can call the API
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # Ensure tables exist
     try:
