@@ -307,3 +307,30 @@ def api_download_file(request, kind: str, filepath: str):
     response = FileResponse(open(target, "rb"), as_attachment=True, filename=target.name)
     response["Access-Control-Allow-Origin"] = "*"
     return response
+
+
+# ---------------------------------------------------------------------------
+# API index — /api/v1  and  /api/v1/
+# ---------------------------------------------------------------------------
+
+@require_GET
+def api_index(request):
+    """GET /api/v1 — returns a JSON directory of all available endpoints."""
+    base = request.build_absolute_uri("/").rstrip("/")
+    endpoints = [
+        {"method": "GET", "path": "/api/v1/health",                          "description": "Database connectivity check"},
+        {"method": "GET", "path": "/api/v1/datasets",                         "description": "List all datasets with row counts"},
+        {"method": "GET", "path": "/api/v1/datasets/{dataset_id}",            "description": "Metadata for a single dataset"},
+        {"method": "GET", "path": "/api/v1/categories",                       "description": "List all categories with counts"},
+        {"method": "GET", "path": "/api/v1/observations",                     "description": "Query observations (filter + paginate)"},
+        {"method": "GET", "path": "/api/v1/files/{kind}",                     "description": "List raw or processed files (kind: raw|processed)"},
+        {"method": "GET", "path": "/api/v1/download/{kind}.zip",              "description": "Download all files as a ZIP archive"},
+        {"method": "GET", "path": "/api/v1/download/{kind}/{filepath}",       "description": "Download a single file by path"},
+    ]
+    return _json({
+        "name": "Open Data Philippines ETL — REST API",
+        "version": "v1",
+        "base_url": f"{base}/api/v1",
+        "docs_url": f"{base}/api-docs/",
+        "endpoints": endpoints,
+    })

@@ -16,6 +16,8 @@ urlpatterns = [
     path("download/<str:kind>/file/<path:filepath>", views.files_single, name="files_single"),
 
     # ── REST API v1 (served by Django — no Flask server needed) ───────────
+    path("api/v1",                                     api_views.api_index,           name="api_index"),
+    path("api/v1/",                                    api_views.api_index,           name="api_index_slash"),
     path("api/v1/health",                              api_views.health,              name="api_health"),
     path("api/v1/datasets",                            api_views.list_datasets,       name="api_datasets"),
     path("api/v1/datasets/<str:dataset_id>",           api_views.get_dataset,         name="api_dataset_detail"),
