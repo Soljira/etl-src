@@ -49,19 +49,52 @@
   .endpoint-path { font-family: 'Courier New', monospace; font-size: .9rem; font-weight: 600; color: #0f172a; }
   .endpoint-desc { color: #64748b; font-size: .82rem; margin-left: auto; }
 
+  /* Code blocks */
+  .code-block-wrap {
+    position: relative;
+    margin-bottom: 0;
+  }
   .code-block {
-    background: #0f172a; color: #e2e8f0; border-radius: 8px;
-    padding: 1rem 1.25rem; font-family: 'Courier New', monospace;
-    font-size: .82rem; line-height: 1.65; position: relative;
-    overflow-x: auto; white-space: pre;
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: .85rem 1.1rem;
+    padding-right: 4.5rem;        /* room for the copy button */
+    font-family: 'Courier New', monospace;
+    font-size: .82rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre-wrap;        /* wraps long lines instead of causing overflow */
+    word-break: break-all;
+    margin: 0;
   }
+  /* Copy button floats above the code as a semi-transparent glass layer */
   .copy-btn {
-    position: absolute; top: .6rem; right: .75rem;
-    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
-    border-radius: 6px; color: #94a3b8; padding: .15rem .55rem;
-    font-size: .72rem; cursor: pointer; transition: all .15s;
+    position: absolute;
+    top: .55rem;
+    right: .65rem;
+    z-index: 10;                  /* sits above the code text like a Photoshop layer */
+    background: rgba(255,255,255,.10);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,.20);
+    border-radius: 6px;
+    color: rgba(255,255,255,.60);
+    padding: .18rem .55rem;
+    font-size: .7rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+    line-height: 1.4;
   }
-  .copy-btn:hover { background: rgba(255,255,255,.18); color: #fff; }
+  .copy-btn:hover {
+    background: rgba(255,255,255,.22);
+    border-color: rgba(255,255,255,.40);
+    color: #fff;
+  }
+  .copy-btn:active {
+    background: rgba(255,255,255,.30);
+  }
 
   .param-table th { font-size: .72rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: .05em; }
   .param-table td { font-size: .82rem; }
@@ -417,19 +450,49 @@
 
 <script>
 (function () {
-  // All endpoints are on the same origin as this page
   const origin = window.location.origin;
   document.getElementById('base-url-display').textContent = origin + '/api/v1';
   document.getElementById('inline-base').textContent = origin + '/api/v1';
   document.getElementById('try-link').href = origin + '/api/v1/health';
   document.querySelectorAll('.base-ph').forEach(el => { el.textContent = origin; });
+
+  // ── Fix copy-button overlay ──────────────────────────────────────────
+  // Move every inline <button class="copy-btn"> out of the text flow
+  // and re-insert it as an absolute-positioned sibling overlay.
+  document.querySelectorAll('.code-block').forEach(block => {
+    const btn = block.querySelector('.copy-btn');
+    if (!btn) return;
+    // Detach from inside the pre text
+    btn.remove();
+    // Wrap the block so the button can be positioned relative to it
+    const wrap = document.createElement('div');
+    wrap.style.position = 'relative';
+    block.parentNode.insertBefore(wrap, block);
+    wrap.appendChild(block);
+    // Re-attach button as an overlay layer above the text
+    btn.style.cssText = [
+      'position:absolute', 'top:.55rem', 'right:.65rem', 'z-index:10',
+      'background:rgba(255,255,255,.10)', 'backdrop-filter:blur(4px)',
+      '-webkit-backdrop-filter:blur(4px)',
+      'border:1px solid rgba(255,255,255,.22)', 'border-radius:6px',
+      'color:rgba(255,255,255,.60)', 'padding:.18rem .55rem',
+      'font-size:.7rem', 'font-family:inherit', 'cursor:pointer',
+      'line-height:1.4', 'transition:background .15s,color .15s',
+    ].join(';');
+    btn.onmouseenter = () => { btn.style.background = 'rgba(255,255,255,.22)'; btn.style.color = '#fff'; };
+    btn.onmouseleave = () => { btn.style.background = 'rgba(255,255,255,.10)'; btn.style.color = 'rgba(255,255,255,.60)'; };
+    wrap.appendChild(btn);
+    // Give the block breathing room on the right so text doesn't hide under button
+    block.style.paddingRight = '4.5rem';
+  });
 })();
 
 function copyCode(btn) {
-  const block = btn.closest('.code-block');
-  const clone = block.cloneNode(true);
-  clone.querySelectorAll('.copy-btn').forEach(b => b.remove());
-  navigator.clipboard.writeText(clone.innerText.trim()).then(() => {
+  // The button is now a sibling of .code-block inside the wrapper
+  const wrap = btn.parentNode;
+  const block = wrap.querySelector('.code-block');
+  if (!block) return;
+  navigator.clipboard.writeText(block.innerText.trim()).then(() => {
     btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
   });
